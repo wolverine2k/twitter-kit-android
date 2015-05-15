@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="tw__allow_btn_txt">[[94023]] Allow</string>
+    <string name="tw__login_btn_txt">[[94020]] Log in with Twitter</string>
+    <string name="tw__not_now_btn_txt">[[94024]] Not now</string>
+    <string name="tw__share_email_desc">[[94022]] Get updates and other information from %1$s when you allow\
+        them access to your email on your Twitter account \@%2$s</string>
+    <string name="tw__share_email_title">[[94021]] Share your email address</string>
+</resources>

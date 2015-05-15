@@ -1,0 +1,38 @@
+<merge
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:twittersdk="http://schemas.android.com/apk/res-auto"
+    android:layout_height="match_parent"
+    android:layout_width="match_parent"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="UnusedResources">
+
+    <!--XML Fixtures-->
+
+    <com.twitter.sdk.android.tweetui.TweetView
+        android:id="@+id/tweet_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        twittersdk:tw__tweet_id="1"/>
+
+    <com.twitter.sdk.android.tweetui.CompactTweetView
+        android:id="@+id/compact_tweet_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        twittersdk:tw__tweet_id="1"/>
+
+    <!--dark style-->
+
+    <com.twitter.sdk.android.tweetui.TweetView
+        android:id="@+id/tweet_view_dark"
+        style="@style/tw__TweetDarkStyle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        twittersdk:tw__tweet_id="1"/>
+
+    <com.twitter.sdk.android.tweetui.CompactTweetView
+        android:id="@+id/compact_tweet_view_dark"
+        style="@style/tw__TweetDarkStyle"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        twittersdk:tw__tweet_id="1"/>
+</merge>

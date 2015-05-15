@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="tw__allow_btn_txt">İzin ver</string>
+    <string name="tw__login_btn_txt">Twitter ile giriş yap</string>
+    <string name="tw__not_now_btn_txt">Şu an değil</string>
+    <string name="tw__share_email_desc">\@%2$s Twitter hesabındaki e-postana erişim izni verdiğinde, %1$s adlı kişinin güncellemelerini ve diğer bilgilerini alabilirsin.</string>
+    <string name="tw__share_email_title">E-posta adresini paylaş</string>
+</resources>

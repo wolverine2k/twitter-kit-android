@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="StateButton">
+        <attr name="finishStateText" format="string" />
+        <attr name="progressStateText" format="string" />
+        <attr name="startStateText" format="string" />
+        <attr name="dgts__StateButtonStyle" format="reference" />
+    </declare-styleable>
+
+    <attr name="dgts__accentColor" format="reference|color" />
+</resources>

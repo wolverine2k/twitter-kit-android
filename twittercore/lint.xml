@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <issue id="IconMissingDensityFolder" severity="ignore">
+        <!-- Suppress lint warning on xxxhdpi, which "is necessary only to provide a launcher icon
+        that can appear larger than usual on an xxhdpi device. You do not need to provide xxxhdpi
+        assets for all your app's images." -->
+        <ignore path="src/debug/res/drawable-xxxhdpi"/>
+    </issue>
+    <issue id="SetJavaScriptEnabled" severity="error">
+        <ignore
+            path="src/main/java/com/twitter/sdk/android/core/identity/OAuthActivity.java"/>
+    </issue>
+    <issue id="TrulyRandom" severity="ignore" />
+
+    <!--Tempoarily needed for OKHTTP/OKIO https://github.com/square/okio/issues/58-->
+    <issue id="InvalidPackage" severity="ignore">
+        <ignore regexp="okio-1.0.0.jar"/>
+    </issue>
+    <!-- TODO: Update to 'com.google.code.gson:gson:2.3 in next commit'-->
+    <issue id="GradleDependency" severity="ignore"/>
+</lint>
