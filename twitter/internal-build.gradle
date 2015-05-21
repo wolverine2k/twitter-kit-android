@@ -1,0 +1,84 @@
+apply plugin: 'android-sdk-manager'
+apply plugin: 'com.android.library'
+apply from: rootProject.qualityScript
+apply from: rootProject.sizeScript
+apply from: rootProject.deployScript
+apply plugin: com.twitter.one.gradle.FabricPropertiesPlugin
+
+repositories {
+    // shared twitter cobalt artifacts (public-external-releases)
+    maven { url 'https://maven.fabric.io/public' }
+}
+
+android {
+    compileSdkVersion rootProject.compileSdkVersion
+    buildToolsVersion rootProject.buildToolsVersion
+
+    defaultConfig {
+        versionCode 1
+        versionName version
+        minSdkVersion 8
+    }
+
+    lintOptions {
+        warningsAsErrors true
+    }
+
+    buildTypes {
+        debug {
+            buildConfigField "String", "GROUP", "\"${pom_group_id}\""
+            buildConfigField "String", "ARTIFACT_ID", "\"${pom_artifact_id}\""
+            buildConfigField "String", "BUILD_NUMBER", "\"${buildNumber}\""
+            // recommended fix from https://code.google.com/p/android/issues/detail?id=61573
+            // triggered by including easymock 3.2 in testing/build.gradle
+            packagingOptions {
+                exclude 'META-INF/LICENSE'
+                exclude 'META-INF/NOTICE'
+                exclude 'META-INF/INDEX.LIST'
+                exclude 'META-INF/jersey-module-version'
+                exclude 'META-INF/ASL2.0'
+                exclude 'LICENSE'
+                exclude 'NOTICE'
+                exclude 'asm-license.txt'
+            }
+
+            testCoverageEnabled enableTestCodeCoverage
+        }
+
+        release {
+            buildConfigField "String", "GROUP", "\"${pom_group_id}\""
+            buildConfigField "String", "ARTIFACT_ID", "\"${pom_artifact_id}\""
+            buildConfigField "String", "BUILD_NUMBER", "\"${buildNumber}\""
+        }
+    }
+
+    jacoco {
+        version = jacocoVersion
+    }
+
+    //Gradle publishes only release by default for multi module projects
+    //This will publish all build variants and we can specifically choose them
+    defaultPublishConfig 'release'
+    publishNonDefault true
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+}
+
+ext.projectDependencies = [
+        ':sdk:twitter:twitter-core',
+        ':sdk:twitter:tweet-ui',
+        ':sdk:twitter:tweet-composer',
+        ':sdk:twitter:digits',
+        ':sdk:fabric:fabric'
+]
+
+dependencies {
+    projectDependencies.each {
+        debugCompile project(path: it, configuration: 'debug')
+        releaseCompile kitDependency(path: it, configuration: 'release')
+    }
+    androidTestCompile 'com.google.protobuf:protobuf-java:2.5.0'
+}

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="tw__allow_btn_txt">אשר</string>
+    <string name="tw__login_btn_txt">כניסה באמצעות טוויטר</string>
+    <string name="tw__not_now_btn_txt">לא עכשיו</string>
+    <string name="tw__share_email_desc">קבל עדכונים ומידע נוסף מ-%1$s לאחר שתאשר להם גישה לחשבון הדואר האלקטרוני שציינת בטוויטר ‎\@%2$s</string>
+    <string name="tw__share_email_title">שתף בכתובת הדואר האלקטרוני שלך</string>
+</resources>

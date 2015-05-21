@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="tw__allow_btn_txt">Salli</string>
+    <string name="tw__login_btn_txt">Kirjaudu Twitter-tunnuksellasi</string>
+    <string name="tw__not_now_btn_txt">Ei nyt</string>
+    <string name="tw__share_email_desc">Saa päivityksiä ja muuta tietoa kohteelta %1$s antamalla pääsy Twitter-tilisi \@%2$s sähköpostiosoitteeseen</string>
+    <string name="tw__share_email_title">Jaa sähköpostiosoitteesi</string>
+</resources>

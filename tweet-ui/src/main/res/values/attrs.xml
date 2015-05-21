@@ -1,0 +1,16 @@
+<resources>
+    <declare-styleable name="tw__TweetView">
+        <attr name="tw__tweet_id" format="string"/>
+        <!--style attributes-->
+        <attr name="tw__container_bg_color" format="color"/>
+        <attr name="tw__primary_text_color" format="color"/>
+        <attr name="tw__action_color" format="color"/>
+    </declare-styleable>
+    <declare-styleable name="tw__AspectRatioImageView">
+        <attr name="tw__image_aspect_ratio" format="float"/>
+        <attr name="tw__image_dimension_to_adjust" format="enum">
+            <enum name="height" value="0"/>
+            <enum name="width" value="1"/>
+        </attr>
+    </declare-styleable>
+</resources>

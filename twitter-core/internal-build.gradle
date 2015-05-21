@@ -1,0 +1,106 @@
+apply plugin: 'android-sdk-manager'
+apply plugin: 'com.android.library'
+apply from: rootProject.qualityScript
+apply from: rootProject.sizeScript
+apply from: rootProject.deployScript
+apply plugin: com.twitter.one.gradle.FabricPropertiesPlugin
+
+android {
+    compileSdkVersion rootProject.compileSdkVersion
+    buildToolsVersion rootProject.buildToolsVersion
+
+    defaultConfig {
+        versionCode 1
+        versionName version
+        minSdkVersion 8
+        consumerProguardFiles 'proguard.txt'
+    }
+
+    def scribeEndpointOverride
+    if (project.hasProperty('scribeEndpointOverride')) {
+        scribeEndpointOverride = project.getProperty('scribeEndpointOverride')
+    } else {
+        scribeEndpointOverride = ''
+    }
+    def scribeSequence
+    if (project.hasProperty("scribeSequence")) {
+        scribeSequence = project.getProperty('scribeSequence')
+    } else {
+        scribeSequence = ''
+    }
+
+    buildTypes {
+        debug {
+            buildConfigField "String", "GROUP", "\"${pom_group_id}\""
+            buildConfigField "String", "ARTIFACT_ID", "\"${pom_artifact_id}\""
+            buildConfigField "String", "BUILD_NUMBER", "\"${buildNumber}\""
+            buildConfigField "long", "BUILD_TIME", "${System.currentTimeMillis()}L"
+            buildConfigField "String", "SCRIBE_ENDPOINT_OVERRIDE", "\"${scribeEndpointOverride}\""
+            buildConfigField "String", "SCRIBE_SEQUENCE", "\"${scribeSequence}\""
+            // recommended fix from https://code.google.com/p/android/issues/detail?id=61573
+            // triggered by including easymock 3.2 in testing/build.gradle
+            packagingOptions {
+                exclude 'META-INF/LICENSE'
+                exclude 'META-INF/NOTICE'
+                exclude 'META-INF/INDEX.LIST'
+                exclude 'META-INF/jersey-module-version'
+                exclude 'META-INF/ASL2.0'
+                exclude 'LICENSE'
+                exclude 'NOTICE'
+                exclude 'asm-license.txt'
+            }
+
+            testCoverageEnabled enableTestCodeCoverage
+        }
+
+        release {
+            buildConfigField "String", "GROUP", "\"${pom_group_id}\""
+            buildConfigField "String", "ARTIFACT_ID", "\"${pom_artifact_id}\""
+            buildConfigField "String", "BUILD_NUMBER", "\"${buildNumber}\""
+            buildConfigField "long", "BUILD_TIME", "${System.currentTimeMillis()}L"
+            buildConfigField "String", "SCRIBE_ENDPOINT_OVERRIDE", "\"${scribeEndpointOverride}\""
+            buildConfigField "String", "SCRIBE_SEQUENCE", "\"${scribeSequence}\""
+        }
+    }
+
+    lintOptions {
+        warningsAsErrors true
+    }
+
+    jacoco {
+        version = jacocoVersion
+    }
+
+    //Gradle publishes only release by default for multi module projects
+    //This will publish all build variants and we can specifically choose them
+    defaultPublishConfig 'release'
+    publishNonDefault true
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+}
+
+ext.projectDependencies = [
+        ':sdk:fabric:fabric'
+]
+
+dependencies {
+    projectDependencies.each {
+        debugCompile project(path: it, configuration: 'debug')
+        releaseCompile kitDependency(path: it, configuration: 'release')
+    }
+
+    compile 'com.squareup.retrofit:retrofit:1.6.1'
+    compile 'com.google.code.gson:gson:2.2.4'
+
+    //Will use the provided packages if they are available in the app developers workspace.
+    provided 'com.squareup.okhttp:okhttp:2.0.0'
+    provided 'com.squareup.okhttp:okhttp-urlconnection:2.0.0'
+
+    androidTestCompile 'org.easymock:easymock:3.2'
+    androidTestCompile ('junit-addons:junit-addons:1.4') {
+        transitive = false
+    }
+}

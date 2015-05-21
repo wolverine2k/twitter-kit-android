@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="dgts__purple">#744eaa</color>
+    <color name="dgts__purple_pressed">#553788</color>
+
+    <color name="dgts__default_accent">#5baaf4</color>
+    <color name="dgts__text_light">#ffffff</color>
+    <color name="dgts__text_dark">#ff030303</color>
+    <color name="dgts__default_logo_name">#56626d</color>
+</resources>

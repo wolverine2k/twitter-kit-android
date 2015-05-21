@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="tw__loading_tweet">Memuatkan Tweet</string>
+    <string name="tw__retweeted_by_format">Ditweet semula oleh %1$s</string>
+    <string name="tw__share_content_format">Semak Tweet \@%1$s\ : https://twitter.com/%1$s/status/%2$s</string>
+    <string name="tw__share_subject_format">Tweet daripada %1$s (\@%2$s)</string>
+    <string name="tw__share_tweet">Kongsi Tweet</string>
+    <string name="tw__tweet_content_description">%1$s. %2$s. %3$s.</string>
+</resources>

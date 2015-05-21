@@ -1,0 +1,13 @@
+<!-- see go/colors -->
+<resources>
+    <color name="tw__tweet_action_color">#55acee</color>
+    <color name="tw__tweet_container_border">#1a000000</color>
+
+    <color name="tw__tweet_light_container_bg_color">#ffffff</color>
+    <color name="tw__tweet_light_primary_text_color">#292f33</color>
+
+    <color name="tw__tweet_dark_container_bg_color">#d9000000</color>
+    <color name="tw__tweet_dark_primary_text_color">#e1ffffff</color>
+
+    <color name="tw__tweet_media_preview_bg_color">#e5e5e5</color>
+</resources>
