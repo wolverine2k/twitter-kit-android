@@ -19,14 +19,21 @@ package com.twitter.sdk.android.tweetui;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.view.View;
 
-import com.twitter.sdk.android.tweetui.internal.VideoControlView;
-import com.twitter.sdk.android.tweetui.internal.VideoView;
-import com.twitter.sdk.android.core.models.MediaEntity;
+import com.twitter.sdk.android.core.internal.scribe.ScribeItem;
+import com.twitter.sdk.android.tweetui.internal.SwipeToDismissTouchListener;
+
+import java.io.Serializable;
 
 public class PlayerActivity extends Activity {
-    static final String MEDIA_ENTITY = "MEDIA_ENTITY";
-    static final String TWEET_ID = "TWEET_ID";
+
+    public static final String PLAYER_ITEM = "PLAYER_ITEM";
+    public static final String SCRIBE_ITEM = "SCRIBE_ITEM";
+
+    static final VideoScribeClient videoScribeClient =
+            new VideoScribeClientImpl(TweetUi.getInstance());
+
     PlayerController playerController;
 
     @Override
@@ -34,22 +41,97 @@ public class PlayerActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.tw__player_activity);
 
-        final VideoView videoView = (VideoView) findViewById(R.id.video_view);
-        final VideoControlView videoControlView =
-                (VideoControlView) findViewById(R.id.video_control_view);
-        final long tweetId = getIntent().getLongExtra(TWEET_ID, 0);
-        final MediaEntity entity = (MediaEntity) getIntent().getSerializableExtra(MEDIA_ENTITY);
+        final PlayerItem item = (PlayerItem) getIntent().getSerializableExtra(PLAYER_ITEM);
+        final View rootView = findViewById(android.R.id.content);
+        playerController = new PlayerController(rootView,
+                new SwipeToDismissTouchListener.Callback(){
 
-        final VideoScribeClient scribeClient = new VideoScribeClientImpl(TweetUi.getInstance());
-        scribeClient.play(tweetId, entity);
+            @Override
+            public void onDismiss() {
+                PlayerActivity.this.finish();
+                overridePendingTransition(0, R.anim.tw__slide_out);
+            }
 
-        playerController = new PlayerController(videoView, videoControlView);
-        playerController.prepare(entity);
+            @Override
+            public void onMove(float translationY) {
+
+            }
+        });
+        playerController.prepare(item);
+
+        final ScribeItem scribeItem = (ScribeItem) getIntent().getSerializableExtra(SCRIBE_ITEM);
+        scribeCardPlayImpression(scribeItem);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        playerController.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        playerController.onPause();
+        super.onPause();
     }
 
     @Override
     public void onDestroy() {
-        playerController.cleanup();
+        playerController.onDestroy();
         super.onDestroy();
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        overridePendingTransition(0, R.anim.tw__slide_out);
+    }
+
+    private void scribeCardPlayImpression(ScribeItem scribeItem) {
+        videoScribeClient.play(scribeItem);
+    }
+
+    public static class PlayerItem implements Serializable {
+        public final String url;
+        public final boolean looping;
+        public final boolean showVideoControls;
+        public final String callToActionUrl;
+        public final String callToActionText;
+
+        /**
+         * @deprecated use  {@link PlayerItem#PlayerItem(String, boolean, boolean, String, String)}
+         * instead
+         */
+        @Deprecated
+        public PlayerItem(String url, boolean looping) {
+            this.url = url;
+            this.looping = looping;
+            this.showVideoControls = false;
+            this.callToActionUrl = null;
+            this.callToActionText = null;
+        }
+
+        /**
+         * @deprecated use  {@link PlayerItem#PlayerItem(String, boolean, boolean, String, String)}
+         * instead
+         */
+        @Deprecated
+        public PlayerItem(String url, boolean looping,
+                          String callToActionText, String callToActionUrl) {
+            this.url = url;
+            this.looping = looping;
+            this.showVideoControls = false;
+            this.callToActionText = callToActionText;
+            this.callToActionUrl = callToActionUrl;
+        }
+
+        public PlayerItem(String url, boolean looping, boolean showVideoControls,
+                          String callToActionText, String callToActionUrl) {
+            this.url = url;
+            this.looping = looping;
+            this.showVideoControls = showVideoControls;
+            this.callToActionText = callToActionText;
+            this.callToActionUrl = callToActionUrl;
+        }
     }
 }

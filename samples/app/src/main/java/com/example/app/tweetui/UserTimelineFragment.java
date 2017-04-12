@@ -23,13 +23,18 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.example.app.BuildConfig;
 import com.example.app.R;
 import com.example.app.twittercore.TwitterCoreMainActivity;
+import com.mopub.nativeads.MoPubAdAdapter;
+import com.mopub.nativeads.RequestParameters;
 import com.twitter.sdk.android.core.Callback;
 import com.twitter.sdk.android.core.Result;
 import com.twitter.sdk.android.core.TwitterAuthException;
 import com.twitter.sdk.android.core.TwitterException;
 import com.twitter.sdk.android.core.models.Tweet;
+import com.twitter.sdk.android.mopub.TwitterMoPubAdAdapter;
+import com.twitter.sdk.android.mopub.TwitterStaticNativeAdRenderer;
 import com.twitter.sdk.android.tweetui.TweetTimelineListAdapter;
 import com.twitter.sdk.android.tweetui.UserTimeline;
 
@@ -41,6 +46,8 @@ public class UserTimelineFragment extends ListFragment {
     public static UserTimelineFragment newInstance() {
         return new UserTimelineFragment();
     }
+
+    private MoPubAdAdapter moPubAdAdapter;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -66,12 +73,25 @@ public class UserTimelineFragment extends ListFragment {
                 .setViewStyle(R.style.tw__TweetLightWithActionsStyle)
                 .setOnActionCallback(actionCallback)
                 .build();
-        setListAdapter(adapter);
+
+        moPubAdAdapter = new TwitterMoPubAdAdapter(getActivity(), adapter);
+        final TwitterStaticNativeAdRenderer adRenderer = new TwitterStaticNativeAdRenderer();
+        moPubAdAdapter.registerAdRenderer(adRenderer);
+        moPubAdAdapter.loadAds(BuildConfig.MOPUB_AD_UNIT_ID);
+
+        setListAdapter(moPubAdAdapter);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         return inflater.inflate(R.layout.tweetui_timeline, container, false);
+    }
+
+    @Override
+    public void onDestroy() {
+        // You must call this or the ad adapter may cause a memory leak
+        moPubAdAdapter.destroy();
+        super.onDestroy();
     }
 }

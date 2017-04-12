@@ -15,17 +15,12 @@
  *
  */
 
-apply plugin: 'android-sdk-manager'
 apply plugin: 'com.android.library'
 apply from: rootProject.qualityScript
 apply from: rootProject.deployScript
 apply plugin: io.fabric.gradle.weaving.ArtifactSizePlugin
 apply plugin: io.fabric.gradle.weaving.FabricPropertiesPlugin
 apply plugin: io.fabric.gradle.weaving.DexMethodCountPlugin
-
-repositories {
-    mavenLocal()
-}
 
 android {
     compileSdkVersion rootProject.compileSdkVersion
@@ -34,7 +29,7 @@ android {
     defaultConfig {
         versionCode 1
         versionName version
-        minSdkVersion 9
+        minSdkVersion rootProject.minSdkVersion.twitter
     }
 
     buildTypes {
@@ -68,8 +63,8 @@ android {
     publishNonDefault true
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
+        sourceCompatibility rootProject.sourceCompatibilityVersion
+        targetCompatibility rootProject.targetCompatibilityVersion
     }
 
     testOptions {
@@ -78,7 +73,6 @@ android {
 }
 
 ext.projectDependencies = [
-        ':sdk:fabric:fabric' : 'io.fabric.sdk.android:fabric:+@aar',
         ':sdk:twitter:twitter-core' : 'com.twitter.sdk.android:twitter-core:+aar'
 ]
 
@@ -87,14 +81,14 @@ dependencies {
         debugCompile project(path: path, configuration: 'debug')
         releaseCompile projectOrBinary(path: path, configuration: 'release', binary: binary)
     }
-    compile rootProject.picasso
-    compile rootProject.tweetText
+    compile dependency.picasso
+    compile dependency.tweetText
 
-    testCompile rootProject.fabricTest
-    testCompile rootProject.mockito
-    testCompile rootProject.junit
-    testCompile rootProject.mavenAntTasks
-    testCompile(rootProject.robolectric) {
+    testCompile dependency.fabricTest
+    testCompile dependency.mockito
+    testCompile dependency.junit
+    testCompile dependency.retrofitMock
+    testCompile(dependency.robolectric) {
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }

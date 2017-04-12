@@ -21,22 +21,16 @@ import io.fabric.sdk.android.Fabric;
 import io.fabric.sdk.android.Kit;
 import io.fabric.sdk.android.services.concurrency.DependsOn;
 
-import com.google.gson.FieldNamingPolicy;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.squareup.picasso.Picasso;
-import com.twitter.sdk.android.core.Session;
+import com.twitter.sdk.android.core.GuestSessionProvider;
 import com.twitter.sdk.android.core.SessionManager;
 import com.twitter.sdk.android.core.TwitterCore;
+import com.twitter.sdk.android.core.TwitterSession;
 import com.twitter.sdk.android.core.internal.scribe.DefaultScribeClient;
 import com.twitter.sdk.android.core.internal.scribe.EventNamespace;
 import com.twitter.sdk.android.core.internal.scribe.ScribeItem;
-import com.twitter.sdk.android.tweetui.internal.GuestSessionProvider;
-import com.twitter.sdk.android.tweetui.internal.UserSessionProvider;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The TweetUi Kit provides views to render Tweets.
@@ -48,23 +42,12 @@ public class TweetUi extends Kit<Boolean> {
 
     private static final String KIT_SCRIBE_NAME = "TweetUi";
 
-    List<SessionManager<? extends Session>> userSessionManagers;
-    List<SessionManager<? extends Session>> guestSessionManagers;
-    UserSessionProvider userSessionProvider;
+    SessionManager<TwitterSession> sessionManager;
     GuestSessionProvider guestSessionProvider;
-    String advertisingId;
     DefaultScribeClient scribeClient;
 
-    private final AtomicReference<Gson> gsonRef;
     private TweetRepository tweetRepository;
-    private TweetUiAuthRequestQueue userAuthQueue;
-    private TweetUiAuthRequestQueue guestAuthQueue;
     private Picasso imageLoader;
-
-    // Singleton class, should only be created using getInstance()
-    public TweetUi() {
-        gsonRef = new AtomicReference<>();
-    }
 
     /**
      * @return the TweetUi singleton.
@@ -89,19 +72,11 @@ public class TweetUi extends Kit<Boolean> {
     protected boolean onPreExecute() {
         super.onPreExecute();
         final TwitterCore twitterCore = TwitterCore.getInstance();
-        userSessionManagers = new ArrayList<>(1);
-        userSessionManagers.add(twitterCore.getSessionManager());
-        userSessionProvider = new UserSessionProvider(userSessionManagers);
-        userAuthQueue = new TweetUiAuthRequestQueue(twitterCore, userSessionProvider);
 
-        guestSessionManagers = new ArrayList<>(2);
-        guestSessionManagers.add(twitterCore.getSessionManager());
-        guestSessionManagers.add(twitterCore.getAppSessionManager());
-        guestSessionProvider = new GuestSessionProvider(twitterCore, guestSessionManagers);
-        guestAuthQueue = new TweetUiAuthRequestQueue(twitterCore, guestSessionProvider);
-
-        tweetRepository = new TweetRepository(getFabric().getMainHandler(), userAuthQueue,
-                guestAuthQueue);
+        sessionManager = twitterCore.getSessionManager();
+        guestSessionProvider = twitterCore.getGuestSessionProvider();
+        tweetRepository = new TweetRepository(getFabric().getMainHandler(),
+                twitterCore.getSessionManager());
         return true;
     }
 
@@ -113,15 +88,8 @@ public class TweetUi extends Kit<Boolean> {
          */
         imageLoader = Picasso.with(getContext());
 
-        // restore active sessions to user and guest auth queues
-        userAuthQueue.sessionRestored(userSessionProvider.getActiveSession());
-        guestAuthQueue.sessionRestored(guestSessionProvider.getActiveSession());
-
-        // ensure initialization of gson, this initialization in most cases will always
-        // happen here.
-        initGson();
         setUpScribeClient();
-        advertisingId = getIdManager().getAdvertisingId();
+
         return true;
     }
 
@@ -136,8 +104,8 @@ public class TweetUi extends Kit<Boolean> {
     }
 
     private void setUpScribeClient() {
-        scribeClient = new DefaultScribeClient(this, KIT_SCRIBE_NAME, gsonRef.get(),
-                guestSessionManagers, getIdManager());
+        scribeClient = new DefaultScribeClient(this, KIT_SCRIBE_NAME, sessionManager,
+                guestSessionProvider, getIdManager());
     }
 
     void scribe(EventNamespace... namespaces) {
@@ -154,23 +122,8 @@ public class TweetUi extends Kit<Boolean> {
         scribeClient.scribe(ns, items);
     }
 
-    // idempotent init
-    void initGson() {
-        if (gsonRef.get() == null) {
-            final Gson gson = new GsonBuilder()
-                    .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-                    .create();
-
-            gsonRef.compareAndSet(null, gson);
-        }
-    }
-
     TweetRepository getTweetRepository() {
         return tweetRepository;
-    }
-
-    TweetUiAuthRequestQueue getGuestAuthQueue() {
-        return guestAuthQueue;
     }
 
     // Testing purposes only
@@ -178,16 +131,12 @@ public class TweetUi extends Kit<Boolean> {
         this.tweetRepository = tweetRepository;
     }
 
-    Picasso getImageLoader() {
+    public Picasso getImageLoader() {
         return imageLoader;
     }
 
     // Testing purposes only
     void setImageLoader(Picasso imageLoader) {
         this.imageLoader = imageLoader;
-    }
-
-    void clearAppSession(long sessionId) {
-        TwitterCore.getInstance().getAppSessionManager().clearSession(sessionId);
     }
 }

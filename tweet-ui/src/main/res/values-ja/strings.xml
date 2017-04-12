@@ -29,4 +29,5 @@
     <string name="tw__share_subject_format">%1$s (\@%2$s)さんからのツイート</string>
     <string name="tw__share_tweet">ツイートを共有</string>
     <string name="tw__tweet_content_description">%1$s、 %2$s、 %3$s。</string>
+    <string name="tw__tweet_media">画像/動画を投稿</string>
 </resources>

@@ -19,7 +19,6 @@ package com.twitter.sdk.android.tweetui;
 
 import android.content.res.Resources;
 import android.graphics.Color;
-import android.os.Build;
 import android.view.InflateException;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -147,25 +146,12 @@ public abstract class BaseTweetViewXmlTest extends TweetUiTestCase {
     }
 
     public void testAvatarDefault() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            final BaseTweetView view = getView();
-            final int containerColor = getResources().getColor(
-                    R.color.tw__tweet_light_container_bg_color);
-            final int color = ColorUtils.calculateOpacityTransform(
-                    BaseTweetView.MEDIA_BG_LIGHT_OPACITY, Color.BLACK, containerColor);
-            assertEquals(color, TestUtils.getDrawableColor(view.avatarView));
-        }
-    }
-
-    public void testPhotoDefault() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            final BaseTweetView view = getView();
-            final int containerColor = getResources().getColor(
-                    R.color.tw__tweet_light_container_bg_color);
-            final int color = ColorUtils.calculateOpacityTransform(
-                    BaseTweetView.MEDIA_BG_LIGHT_OPACITY, Color.BLACK, containerColor);
-            assertEquals(color, TestUtils.getDrawableColor(view.mediaView));
-        }
+        final BaseTweetView view = getView();
+        final int containerColor = getResources().getColor(
+                R.color.tw__tweet_light_container_bg_color);
+        final int color = ColorUtils.calculateOpacityTransform(
+                BaseTweetView.MEDIA_BG_LIGHT_OPACITY, Color.BLACK, containerColor);
+        assertEquals(color, TestUtils.getDrawableColor(view.avatarView));
     }
 
     public void testPhotoErrorDefault() {
@@ -180,7 +166,6 @@ public abstract class BaseTweetViewXmlTest extends TweetUiTestCase {
     }
 
     // dark style
-
     public void testStaticColorsDark() {
         final BaseTweetView view = getViewDark();
         TweetAsserts.assertDarkColors(view, getResources());
@@ -199,25 +184,12 @@ public abstract class BaseTweetViewXmlTest extends TweetUiTestCase {
     }
 
     public void testAvatarDark() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            final BaseTweetView view = getViewDark();
-            final int containerColor = getResources().getColor(
-                    R.color.tw__tweet_dark_container_bg_color);
-            final int color = ColorUtils.calculateOpacityTransform(
-                    BaseTweetView.MEDIA_BG_DARK_OPACITY, Color.WHITE, containerColor);
-            assertEquals(color, TestUtils.getDrawableColor(view.avatarView));
-        }
-    }
-
-    public void testPhotoDark() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            final BaseTweetView view = getViewDark();
-            final int containerColor = getResources().getColor(
-                    R.color.tw__tweet_dark_container_bg_color);
-            final int color = ColorUtils.calculateOpacityTransform(
-                    BaseTweetView.MEDIA_BG_DARK_OPACITY, Color.WHITE, containerColor);
-            assertEquals(color, TestUtils.getDrawableColor(view.mediaView));
-        }
+        final BaseTweetView view = getViewDark();
+        final int containerColor = getResources().getColor(
+                R.color.tw__tweet_dark_container_bg_color);
+        final int color = ColorUtils.calculateOpacityTransform(
+                BaseTweetView.MEDIA_BG_DARK_OPACITY, Color.WHITE, containerColor);
+        assertEquals(color, TestUtils.getDrawableColor(view.avatarView));
     }
 
     public void testPhotoErrorDark() {

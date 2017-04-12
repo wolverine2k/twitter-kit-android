@@ -17,7 +17,12 @@
 
 package com.twitter.sdk.android.core;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.twitter.sdk.android.core.internal.TwitterApi;
+import com.twitter.sdk.android.core.internal.network.OkHttpClientHelper;
+import com.twitter.sdk.android.core.models.BindingValues;
+import com.twitter.sdk.android.core.models.BindingValuesAdapter;
 import com.twitter.sdk.android.core.models.SafeListAdapter;
 import com.twitter.sdk.android.core.models.SafeMapAdapter;
 import com.twitter.sdk.android.core.services.AccountService;
@@ -29,17 +34,11 @@ import com.twitter.sdk.android.core.services.MediaService;
 import com.twitter.sdk.android.core.services.SearchService;
 import com.twitter.sdk.android.core.services.StatusesService;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 
-import javax.net.ssl.SSLSocketFactory;
-
-import retrofit.RestAdapter;
-import retrofit.android.MainThreadExecutor;
-import retrofit.converter.GsonConverter;
+import okhttp3.OkHttpClient;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
  * A class to allow authenticated access to Twitter API endpoints.
@@ -47,54 +46,82 @@ import retrofit.converter.GsonConverter;
  * interfaces to {@link com.twitter.sdk.android.core.TwitterApiClient#getService(Class)}
  */
 public class TwitterApiClient {
-    private static final String UPLOAD_ENDPOINT = "https://upload.twitter.com";
     final ConcurrentHashMap<Class, Object> services;
-    final RestAdapter apiAdapter;
-    final RestAdapter uploadAdapter;
+    final Retrofit retrofit;
 
-    TwitterApiClient(TwitterAuthConfig authConfig,
-                     Session session,
-                     TwitterApi twitterApi,
-                     SSLSocketFactory sslSocketFactory, ExecutorService executorService) {
-
-        if (session == null) {
-            throw new IllegalArgumentException("Session must not be null.");
-        }
-
-        this.services = new ConcurrentHashMap<>();
-
-        final Gson gson = new GsonBuilder()
-                .registerTypeAdapterFactory(new SafeListAdapter())
-                .registerTypeAdapterFactory(new SafeMapAdapter())
-                .create();
-
-        apiAdapter = new RestAdapter.Builder()
-                .setClient(new AuthenticatedClient(authConfig, session, sslSocketFactory))
-                .setEndpoint(twitterApi.getBaseHostUrl())
-                .setConverter(new GsonConverter(gson))
-                .setExecutors(executorService, new MainThreadExecutor())
-                .build();
-
-        uploadAdapter = new RestAdapter.Builder()
-                .setClient(new AuthenticatedClient(authConfig, session, sslSocketFactory))
-                .setEndpoint(UPLOAD_ENDPOINT)
-                .setConverter(new GsonConverter(gson))
-                .setExecutors(executorService, new MainThreadExecutor())
-                .build();
+    /**
+     * Constructs Guest Session based TwitterApiClient.
+     */
+    public TwitterApiClient() {
+        this(OkHttpClientHelper.getOkHttpClient(
+                TwitterCore.getInstance().getGuestSessionProvider(),
+                TwitterCore.getInstance().getSSLSocketFactory()),
+            new TwitterApi());
     }
 
     /**
-     * Must be instantiated after {@link com.twitter.sdk.android.core.TwitterCore} has been
-     * initialized via {@link io.fabric.sdk.android.Fabric#with(android.content.Context, io.fabric.sdk.android.Kit[])}.
+     * Constructs Guest Session based TwitterApiClient, with custom http client.
      *
-     * @param session Session to be used to create the API calls.
-     *
-     * @throws @{link java.lang.IllegalArgumentException} if TwitterSession argument is null
+     * The custom http client can be constructed with {@link okhttp3.Interceptor}, and other
+     * optional params provided in {@link okhttp3.OkHttpClient}.
      */
-    public TwitterApiClient(Session session) {
-        this(TwitterCore.getInstance().getAuthConfig(), session, new TwitterApi(),
-                TwitterCore.getInstance().getSSLSocketFactory(),
-                TwitterCore.getInstance().getFabric().getExecutorService());
+    public TwitterApiClient(OkHttpClient client) {
+        this(OkHttpClientHelper.getCustomOkHttpClient(
+                client,
+                TwitterCore.getInstance().getGuestSessionProvider(),
+                TwitterCore.getInstance().getSSLSocketFactory()),
+            new TwitterApi());
+    }
+
+    /**
+     * Constructs User Session based TwitterApiClient.
+     */
+    public TwitterApiClient(TwitterSession session) {
+        this(OkHttpClientHelper.getOkHttpClient(
+                session,
+                TwitterCore.getInstance().getAuthConfig(),
+                TwitterCore.getInstance().getSSLSocketFactory()),
+            new TwitterApi());
+    }
+
+    /**
+     * Constructs User Session based TwitterApiClient, with custom http client.
+     *
+     * The custom http client can be constructed with {@link okhttp3.Interceptor}, and other
+     * optional params provided in {@link okhttp3.OkHttpClient}.
+     */
+    public TwitterApiClient(TwitterSession session, OkHttpClient client) {
+        this(OkHttpClientHelper.getCustomOkHttpClient(
+                client,
+                session,
+                TwitterCore.getInstance().getAuthConfig(),
+                TwitterCore.getInstance().getSSLSocketFactory()),
+            new TwitterApi());
+    }
+
+    TwitterApiClient(OkHttpClient client, TwitterApi twitterApi) {
+        this.services = buildConcurrentMap();
+        this.retrofit = buildRetrofit(client, twitterApi);
+    }
+
+    private Retrofit buildRetrofit(OkHttpClient httpClient, TwitterApi twitterApi) {
+        return new Retrofit.Builder()
+                .client(httpClient)
+                .baseUrl(twitterApi.getBaseHostUrl())
+                .addConverterFactory(GsonConverterFactory.create(buildGson()))
+                .build();
+    }
+
+    private Gson buildGson() {
+        return new GsonBuilder()
+                .registerTypeAdapterFactory(new SafeListAdapter())
+                .registerTypeAdapterFactory(new SafeMapAdapter())
+                .registerTypeAdapter(BindingValues.class, new BindingValuesAdapter())
+                .create();
+    }
+
+    private ConcurrentHashMap buildConcurrentMap() {
+        return new ConcurrentHashMap<>();
     }
 
     /**
@@ -152,7 +179,7 @@ public class TwitterApiClient {
      * upload endpoints.
      */
     public MediaService getMediaService() {
-        return getAdapterService(uploadAdapter, MediaService.class);
+        return getService(MediaService.class);
     }
 
     /**
@@ -163,19 +190,8 @@ public class TwitterApiClient {
      */
     @SuppressWarnings("unchecked")
     protected <T> T getService(Class<T> cls) {
-        return getAdapterService(apiAdapter, cls);
-    }
-
-    /**
-     * Converts a Retrofit style interfaces into an instance using the given RestAdapter.
-     * @param adapter the retrofit RestAdapter to use to generate a service instance
-     * @param cls Retrofit style service interface
-     * @return instance of cls
-     */
-    @SuppressWarnings("unchecked")
-    protected <T> T getAdapterService(RestAdapter adapter, Class<T> cls) {
         if (!services.contains(cls)) {
-            services.putIfAbsent(cls, adapter.create(cls));
+            services.putIfAbsent(cls, retrofit.create(cls));
         }
         return (T) services.get(cls);
     }

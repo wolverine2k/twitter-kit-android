@@ -21,6 +21,7 @@ import android.os.Build;
 
 import com.twitter.sdk.android.core.models.MediaEntity;
 import com.twitter.sdk.android.core.models.Tweet;
+import com.twitter.sdk.android.core.models.TweetEntities;
 import com.twitter.sdk.android.core.models.VideoInfo;
 
 import java.util.ArrayList;
@@ -31,7 +32,8 @@ final public class TweetMediaUtils {
     public static final String VIDEO_TYPE = "video";
     public static final String GIF_TYPE = "animated_gif";
     private static final String CONTENT_TYPE_MP4 = "video/mp4";
-    private static final String CONTENT_TYPE_WEBM = "video/webm";
+    private static final String CONTENT_TYPE_HLS = "application/x-mpegURL";
+    private static final int LOOP_VIDEO_IN_MILLIS = 6500;
 
     private TweetMediaUtils() {
     }
@@ -51,6 +53,30 @@ final public class TweetMediaUtils {
             }
         }
         return null;
+    }
+
+    /**
+     * This method gets the all the photos from the tweet, which are used to display inline
+     *
+     * @param tweet The Tweet
+     * @return Photo entities of Tweet
+     */
+    static public List<MediaEntity> getPhotoEntities(Tweet tweet) {
+        final List<MediaEntity> photoEntities = new ArrayList<>();
+        final TweetEntities extendedEntities = tweet.extendedEtities;
+
+        if (extendedEntities != null && extendedEntities.media != null
+                && extendedEntities.media.size() > 0) {
+            for (int i = 0; i <= extendedEntities.media.size() - 1; i++) {
+                final MediaEntity entity = extendedEntities.media.get(i);
+                if (entity.type != null && isPhotoType(entity)) {
+                    photoEntities.add(entity);
+                }
+            }
+            return photoEntities;
+        }
+
+        return photoEntities;
     }
 
     /**
@@ -81,29 +107,25 @@ final public class TweetMediaUtils {
     }
 
     /**
-     * Returns true if there is a media entity with the type of "video" or "animated_gif"
+     * Returns true if there is a media entity with the type of "video" or "animated_gif" and
+     * playback is supported.
      *
-     * @param tweet The Tweet entities
-     * @return true if there is a media entity with the type of "video" or "animated_gif"
+     * @param tweet The Tweet
+     * @return true if there is a media entity with the type of "video" or "animated_gif" and
+     * playback is supported
      */
-    static public boolean hasVideo(Tweet tweet) {
-        return getVideoEntity(tweet) != null;
+    static public boolean hasSupportedVideo(Tweet tweet) {
+        final MediaEntity entity = getVideoEntity(tweet);
+        return entity != null && getSupportedVariant(entity) != null;
     }
 
     static boolean isPhotoType(MediaEntity mediaEntity) {
-        if (PHOTO_TYPE.equals(mediaEntity.type)) {
-            return true;
-        }
+        return PHOTO_TYPE.equals(mediaEntity.type);
 
-        return false;
     }
 
     static boolean isVideoType(MediaEntity mediaEntity) {
-        if (VIDEO_TYPE.equals(mediaEntity.type) || GIF_TYPE.equals(mediaEntity.type)) {
-            return true;
-        }
-
-        return false;
+        return VIDEO_TYPE.equals(mediaEntity.type) || GIF_TYPE.equals(mediaEntity.type);
     }
 
     static public VideoInfo.Variant getSupportedVariant(MediaEntity mediaEntity) {
@@ -117,18 +139,20 @@ final public class TweetMediaUtils {
     }
 
     static public boolean isLooping(MediaEntity mediaEntity) {
-        if (GIF_TYPE.equals(mediaEntity.type)) {
-            return true;
-        }
+        return GIF_TYPE.equals(mediaEntity.type) ||
+                VIDEO_TYPE.endsWith(mediaEntity.type) &&
+                mediaEntity.videoInfo.durationMillis < LOOP_VIDEO_IN_MILLIS;
+    }
 
-        return false;
+    static public boolean showVideoControls(MediaEntity mediaEntity) {
+        return !GIF_TYPE.equals(mediaEntity.type);
     }
 
     static boolean isVariantSupported(VideoInfo.Variant variant) {
-        if (CONTENT_TYPE_MP4.equals(variant.contentType)) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP &&
+                CONTENT_TYPE_HLS.equals(variant.contentType)) {
             return true;
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
-                && CONTENT_TYPE_WEBM.equals(variant.contentType)) {
+        } else if (CONTENT_TYPE_MP4.equals(variant.contentType)) {
             return true;
         }
 

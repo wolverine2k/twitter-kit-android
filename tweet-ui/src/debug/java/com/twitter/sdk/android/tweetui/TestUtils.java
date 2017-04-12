@@ -17,12 +17,10 @@
 
 package com.twitter.sdk.android.tweetui;
 
-import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.drawable.ColorDrawable;
-import android.os.Build;
 import android.widget.ImageView;
 
 import java.util.Locale;
@@ -48,16 +46,17 @@ public final class TestUtils {
 
 
     /**
-     * Gets the color of the ImageView's ColorDrawable or 0 for API < 11.
+     * Gets the color of the ImageView's ColorDrawable or 0 for API &lt; 11.
      * @param imageView an ImageView with a ColorDrawable
      * @return int color of the ImageView
      */
-    @TargetApi(11)
     public static int getDrawableColor(ImageView imageView) {
-        if (Build.VERSION.SDK_INT >= 11) {
-            final ColorDrawable drawable = (ColorDrawable) imageView.getDrawable();
-            return drawable.getColor();
-        }
-        return 0;
+        final ColorDrawable drawable = (ColorDrawable) imageView.getDrawable();
+        return drawable.getColor();
+    }
+
+    public static int getBackgroundColor(ImageView imageView) {
+        final ColorDrawable drawable = (ColorDrawable) imageView.getBackground();
+        return drawable.getColor();
     }
 }

@@ -3,6 +3,63 @@
 
 ## Unreleased
 
+## v2.3.1
+
+* Removed unused Vine utility method.
+
+## v2.3.0
+
+* Normalized user-agent to avoid errors with non-ascii characters.
+* Added symbols to Tweet entities.
+
+## v2.2.0
+
+* Added support for user defined OkHttpClient.
+
+## v2.1.0
+
+* Fixed IllegalArgumentException in GuestAuthenticator.
+
+## v2.0.1
+
+* Updated proguard rules for Okhttp3 and Retrofit2.
+* Removed pseudo locales from translations.
+* Moved TwitterCollection from internal package to models.
+* Minor bug fixes.
+
+## v2.0.0
+
+* Dropped support for API versions before API 14 (ICS).
+* Migrated to Retrofit 2.0 and OkHttp 3.2.
+* TwitterApiClient now automatically refreshes expired guest tokens.
+* Removed previously deprecated methods and classes.
+* Removed all public reference to Application Authentication.
+* Fixed issue parsing withheldInCountries field in User object.
+* Added altText field to MediaEntity object.
+* Added Quote Tweet to Tweet object.
+
+## v1.7.0
+
+* Added support for Vine in Tweets
+* Enabled extended Tweet display
+
+## v1.6.8
+
+* Fixed Fake ID exploit
+
+## v1.6.7
+
+* Updated Fabric Base dependency
+
+## v1.6.6
+
+* Fixed security issue where certificate pinning wasn't happening for some requests.
+
+## v1.6.5
+
+ * Removed Verisign Class 3 Certificate from pinning list.
+ * Fixed JavaDocs.
+
 ## v1.6.4
 
 * Fixed retrieving auth token when using OkHttp 2.3+.

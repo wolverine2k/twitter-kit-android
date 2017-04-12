@@ -1,8 +1,74 @@
 # Android SDK TweetUi Kit changelog
-
 *Non-trivial pull requests should include an entry below. Entries must be suitable for inclusion in public-facing materials such as release notes and blog posts. Keep them short, sweet, and in the past tense. New entries go on top. When merging to deploy, add the version number and date.*
 
 ## Unreleased
+
+## v2.3.2
+
+* Added ability to set geocode for SearchTimeline builder.
+* Videos less than 6.5 seconds now loop.
+* Fixed issue where quote Tweets with media showed both media and quote Tweet. Only media should be shown if both are included.
+
+## v2.3.1
+
+* Improved RTL mirroring for Tweet views.
+* Dates are now properly localized for non-English locales.
+
+## v2.3.0
+
+* Added support for timeline filtering.
+
+## v2.2.0
+
+* Added support for quote Tweet display.
+
+## v2.1.1
+
+* Fixed UnsupportedOperationException when rendering multiple photos API 17 and below.
+
+## v2.1.0
+
+* Added multi-photo support for inline views and the fullscreen gallery view.
+* Updated Twitter Core dependency to version 2.1.0.
+
+## v2.0.1
+
+* Removed pseudo locales from translations.
+
+## v2.0.0
+
+* Dropped support for API versions before API 14 (ICS).
+* Updated Twitter Core dependency.
+* Removed previously deprecated methods and classes.
+* Added contentDescription for media based on altText field.
+
+## v1.11.1
+
+* Allow non-filtered search results for SearchTimeline
+
+## v1.11.0
+
+* Added support for Vine in Tweets
+
+## v1.10.3
+
+* Updated Twitter Core dependency
+
+## v1.10.2
+
+* Updated Fabric Base dependency
+
+## v1.10.1
+
+* Added HLS playback support. Removed WebM playback support.
+* Added loading and buffering spinners to video player.
+* Only show play button and media badge if playback is supported.
+
+## v1.10.0
+
+* Added click listeners on Tweet views for URL and media clicks.
+* Fixed click listeners on Tweet text so multiple events are not generated.
+* Fixed JavaDocs.
 
 ## v1.9.1
 

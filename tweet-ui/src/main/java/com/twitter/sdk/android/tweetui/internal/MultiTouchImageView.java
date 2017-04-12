@@ -18,20 +18,20 @@
 package com.twitter.sdk.android.tweetui.internal;
 
 import android.animation.ValueAnimator;
-import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
-import android.os.Build;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
+import android.view.ViewParent;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageView;
 
-public class MultiTouchImageView extends ImageView {
+public class MultiTouchImageView extends ImageView
+        implements SwipeToDismissTouchListener.SwipeableViewProvider {
     private final static long SCALE_ANIMATION_DURATION = 300L;
     private final static float DOUBLE_TAP_SCALE_FACTOR = 2.0f;
     private final static float MINIMUM_SCALE_FACTOR = 1.0f;
@@ -47,6 +47,8 @@ public class MultiTouchImageView extends ImageView {
     // Used to avoid allocating new objects
     final RectF drawRect = new RectF();
     final float[] matrixValues = new float[9];
+
+    boolean allowIntercept = false;
 
     public MultiTouchImageView(Context context) {
         this(context, null);
@@ -84,6 +86,11 @@ public class MultiTouchImageView extends ImageView {
             public boolean onScroll(MotionEvent e1, MotionEvent e2, float dx, float dy) {
                 setTranslate(-dx, -dy);
                 setImageMatrix();
+
+                if (allowIntercept && !scaleGestureDetector.isInProgress()) {
+                    requestDisallowInterceptTouchEvent(false);
+                }
+
                 return true;
             }
 
@@ -135,11 +142,18 @@ public class MultiTouchImageView extends ImageView {
         }
 
         // Do not allow touch events to be intercepted (usually for gallery swipes) by default
-        getParent().requestDisallowInterceptTouchEvent(true);
+        requestDisallowInterceptTouchEvent(true);
 
         boolean retVal = scaleGestureDetector.onTouchEvent(event);
         retVal = gestureDetector.onTouchEvent(event) || retVal;
         return retVal || super.onTouchEvent(event);
+    }
+
+    void requestDisallowInterceptTouchEvent(boolean disallowIntercept) {
+        final ViewParent parent = getParent();
+        if (parent != null) {
+            parent.requestDisallowInterceptTouchEvent(disallowIntercept);
+        }
     }
 
     void setScale(float ds, float px, float py) {
@@ -173,11 +187,16 @@ public class MultiTouchImageView extends ImageView {
         }
 
         if (rect.width() <= viewRect.width()) {
+            allowIntercept = true;
             dx = (viewRect.width() - rect.width()) / 2 - rect.left;
         } else if (rect.left > 0) {
+            allowIntercept = true;
             dx = -rect.left;
         } else if (rect.right < viewRect.width()) {
+            allowIntercept = true;
             dx = viewRect.width() - rect.right;
+        } else {
+            allowIntercept = false;
         }
 
         setTranslate(dx, dy);
@@ -207,16 +226,6 @@ public class MultiTouchImageView extends ImageView {
     }
 
     void animateScale(float start, float end, final float px, final float py) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            animateScaleHoneyComb(start, end, px, py);
-        } else {
-            setScale(end / getScale(), px, py);
-            setImageMatrix();
-        }
-    }
-
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-    void animateScaleHoneyComb(float start, float end, final float px, final float py) {
         final ValueAnimator animator = ValueAnimator.ofFloat(start, end);
 
         animator.setDuration(SCALE_ANIMATION_DURATION);
@@ -232,5 +241,10 @@ public class MultiTouchImageView extends ImageView {
             }
         });
         animator.start();
+    }
+
+    @Override
+    public boolean canBeSwiped() {
+        return getScale() == 1f;
     }
 }

@@ -29,4 +29,5 @@
     <string name="tw__share_subject_format">%1$s (\@%2$s) থেকে টুইট</string>
     <string name="tw__share_tweet">টুইট ভাগ করুন</string>
     <string name="tw__tweet_content_description">%1$s. %2$s. %3$s.</string>
+    <string name="tw__tweet_media">টুইট মিডিয়া</string>
 </resources>

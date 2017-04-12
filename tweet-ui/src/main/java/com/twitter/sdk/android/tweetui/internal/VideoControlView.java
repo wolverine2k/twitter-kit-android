@@ -19,7 +19,6 @@ package com.twitter.sdk.android.tweetui.internal;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.util.AttributeSet;
@@ -60,6 +59,9 @@ public class VideoControlView extends FrameLayout {
         @Override
         public void handleMessage(Message msg) {
             if (msg.what == SHOW_PROGRESS_MSG) {
+                if (player == null) {
+                    return;
+                }
                 updateProgress();
                 updateStateControl();
                 if (isShowing() && player.isPlaying()) {
@@ -134,7 +136,6 @@ public class VideoControlView extends FrameLayout {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                updateStateControl();
                 handler.sendEmptyMessage(SHOW_PROGRESS_MSG);
             }
         };
@@ -167,7 +168,7 @@ public class VideoControlView extends FrameLayout {
     void updateStateControl() {
         if (player.isPlaying()) {
             setPauseDrawable();
-        } else if (player.getCurrentPosition() >= player.getDuration() - 500) {
+        } else if (player.getCurrentPosition() > Math.max(player.getDuration() - 500, 0)) {
             setReplayDrawable();
         } else {
             setPlayDrawable();
@@ -191,25 +192,20 @@ public class VideoControlView extends FrameLayout {
 
     void hide() {
         handler.removeMessages(SHOW_PROGRESS_MSG);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
-            AnimationUtils.fadeOut(this, FADE_DURATION_MS);
-        } else {
-            setVisibility(View.INVISIBLE);
-        }
+        AnimationUtils.fadeOut(this, FADE_DURATION_MS);
     }
 
     void show() {
         handler.sendEmptyMessage(SHOW_PROGRESS_MSG);
-        updateStateControl();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1) {
-            AnimationUtils.fadeIn(this, FADE_DURATION_MS);
-        } else {
-            setVisibility(View.VISIBLE);
-        }
+        AnimationUtils.fadeIn(this, FADE_DURATION_MS);
     }
 
     public boolean isShowing() {
         return getVisibility() == View.VISIBLE;
+    }
+
+    public void update() {
+        handler.sendEmptyMessage(SHOW_PROGRESS_MSG);
     }
 
     public interface MediaPlayerControl {
@@ -221,18 +217,10 @@ public class VideoControlView extends FrameLayout {
 
         int getCurrentPosition();
 
-        void seekTo(int var1);
+        void seekTo(int position);
 
         boolean isPlaying();
 
         int getBufferPercentage();
-
-        boolean canPause();
-
-        boolean canSeekBackward();
-
-        boolean canSeekForward();
-
-        int getAudioSessionId();
     }
 }

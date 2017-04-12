@@ -4,6 +4,41 @@
 
 ## Unreleased
 
+## v2.3.1
+
+* Restricted Broadcast Intents to current application to avoid leaking sensitive information.
+
+## v2.3.0
+
+* Updated Twitter Core dependency.
+
+## v2.2.0
+
+* Updated Twitter Core dependency.
+
+## v2.1.0
+
+* Updated Twitter Core dependency to version 2.1.0.
+
+## v2.0.1
+
+* Added translations.
+* Removed pseudo locales from translations.
+
+## v2.0.0
+
+* Dropped support for API versions before API 14 (ICS).
+* Updated Twitter Core dependency
+
+## v1.0.5
+
+* Updated Twitter Core dependency
+
+## v1.0.4
+
+* Updated Fabric Base dependency
+* Updated composer to accept #hashtags
+
 ## v1.0.3
 
 ## v1.0.2

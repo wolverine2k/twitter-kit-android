@@ -24,8 +24,12 @@ import io.fabric.sdk.android.FabricAndroidTestCase;
 import io.fabric.sdk.android.FabricTestUtils;
 import io.fabric.sdk.android.KitStub;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import javax.net.ssl.SSLSocketFactory;
 
@@ -91,22 +95,19 @@ public class TwitterCoreTest extends FabricAndroidTestCase {
         }
     }
 
-    public void testLogInGuest_noSdkStart() {
-        final Callback<AppSession> mockCallback = mock(Callback.class);
+    public void testGuestSessionManager_noSdkStart() {
         try {
-            TwitterCore.getInstance().logInGuest(mockCallback);
+            TwitterCore.getInstance().getGuestSessionProvider();
             fail("Should fail if Fabric is not instantiated.");
         } catch (IllegalStateException ie) {
             assertEquals(FABRIC_NOT_INIT_ERROR_MSG, ie.getMessage());
         }
     }
 
-    public void testLogInGuest_sdkStartNoTwitterKit() throws Exception {
+    public void testGuestSessionManager_sdkStartNoTwitterKit() throws Exception {
         FabricTestUtils.with(getContext(), new KitStub<Result>());
-        final Callback<AppSession> mockCallback = mock(Callback.class);
-
         try {
-            TwitterCore.getInstance().logInGuest(mockCallback);
+            TwitterCore.getInstance().getGuestSessionProvider();
             fail("Should fail if Twitter is not instantiated with Fabric.");
         } catch (IllegalStateException ie) {
             assertEquals(TWITTER_NOT_INIT_ERROR_MSG, ie.getMessage());
@@ -154,13 +155,13 @@ public class TwitterCoreTest extends FabricAndroidTestCase {
 
     public void testGetAppSessionManager() throws Exception {
         FabricTestUtils.with(getContext(), twitterCore);
-        assertNotNull(twitterCore.getAppSessionManager());
+        assertNotNull(twitterCore.getGuestSessionProvider());
     }
 
     public void testGetAppSessionManager_twitterNotInitialized() throws Exception {
         FabricTestUtils.with(getContext(), new KitStub());
         try {
-            twitterCore.getAppSessionManager();
+            twitterCore.getGuestSessionProvider();
             fail("Should fail if Twitter is not instantiated with Fabric.");
         } catch (IllegalStateException ex) {
             assertEquals(TWITTER_NOT_INIT_ERROR_MSG, ex.getMessage());
@@ -171,17 +172,6 @@ public class TwitterCoreTest extends FabricAndroidTestCase {
         FabricTestUtils.with(getContext(), twitterCore);
         twitterCore.twitterSessionManager = setUpSessionManager(mock(TwitterSession.class));
         assertNotNull(twitterCore.getApiClient());
-    }
-
-    public void testGetApiClient_activeSessionDoesNotExist() throws Exception {
-        FabricTestUtils.with(getContext(), twitterCore);
-        try {
-            twitterCore.getApiClient();
-            fail("Should fail when there are no active sessions");
-        } catch (IllegalStateException e) {
-            assertEquals("Must have valid session. Did you authenticate with Twitter?",
-                    e.getMessage());
-        }
     }
 
     public void testGetApiClient_twitterNotInitialized() throws Exception {
@@ -196,13 +186,23 @@ public class TwitterCoreTest extends FabricAndroidTestCase {
 
     public void testGetApiClient_withSession() throws Exception {
         FabricTestUtils.with(getContext(), twitterCore);
-        assertNotNull(twitterCore.getApiClient(mock(Session.class)));
+        assertNotNull(twitterCore.getApiClient(mock(TwitterSession.class)));
     }
 
     public void testGetApiClient_withSessionTwitterNotInitialized() throws Exception {
         FabricTestUtils.with(getContext(), new KitStub<Result>());
         try {
-            twitterCore.getApiClient(mock(Session.class));
+            twitterCore.getApiClient(mock(TwitterSession.class));
+            fail("Should fail if Twitter is not instantiated with Fabric.");
+        } catch (IllegalStateException ex) {
+            assertEquals(TWITTER_NOT_INIT_ERROR_MSG, ex.getMessage());
+        }
+    }
+
+    public void testGetGuestApiClient_twitterNotInitialized() throws Exception {
+        FabricTestUtils.with(getContext(), new KitStub<Result>());
+        try {
+            twitterCore.getGuestApiClient();
             fail("Should fail if Twitter is not instantiated with Fabric.");
         } catch (IllegalStateException ex) {
             assertEquals(TWITTER_NOT_INIT_ERROR_MSG, ex.getMessage());
@@ -219,13 +219,15 @@ public class TwitterCoreTest extends FabricAndroidTestCase {
         // We don't want to use FabricTestUtils here because we want to test
         // this when onBackground is also running
         Fabric.with(getContext(), twitterCore);
-        final ParallelCallableExecutor<SSLSocketFactory> executor =
-                new ParallelCallableExecutor<>(
-                        new SSLSocketFactoryCallable(twitterCore),
-                        new SSLSocketFactoryCallable(twitterCore));
-        final List<SSLSocketFactory> sslSocketFactories = executor.getAllValues();
-        assertNotNull(sslSocketFactories.get(0));
-        assertSame(sslSocketFactories.get(0), sslSocketFactories.get(1));
+        final List<SSLSocketFactoryCallable> callables = Arrays.asList(
+                new SSLSocketFactoryCallable(twitterCore),
+                new SSLSocketFactoryCallable(twitterCore));
+        final ExecutorService executorService = Executors.newFixedThreadPool(callables.size());
+        final List<Future<SSLSocketFactory>> socketFactories = executorService.invokeAll(callables);
+
+        assertNotNull(socketFactories.get(0).get());
+        assertNotNull(socketFactories.get(1).get());
+        assertSame(socketFactories.get(0).get(), socketFactories.get(1).get());
     }
 
     private static class SSLSocketFactoryCallable implements Callable<SSLSocketFactory> {

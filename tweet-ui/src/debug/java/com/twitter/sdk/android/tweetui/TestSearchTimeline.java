@@ -17,24 +17,20 @@
 
 package com.twitter.sdk.android.tweetui;
 
-import com.twitter.sdk.android.core.Callback;
-import com.twitter.sdk.android.core.TwitterApiClient;
-import com.twitter.sdk.android.core.models.Tweet;
+import com.twitter.sdk.android.core.models.Search;
+import com.twitter.sdk.android.core.services.params.Geocode;
+
+import retrofit2.Call;
 
 public class TestSearchTimeline extends SearchTimeline {
 
-    TestSearchTimeline(TweetUi tweetUi, String query, String lang, Integer count) {
-        super(tweetUi, query, lang, count);
+    TestSearchTimeline(String query, Geocode geocode, String resultType, String lang,
+                       Integer count, String untilDate) {
+        super(query, geocode, resultType, lang, count, untilDate);
     }
 
     @Override
-    public void addRequest(Callback<TwitterApiClient> cb) {
-        super.addRequest(cb);
-    }
-
-    @Override
-    public Callback<TwitterApiClient> createSearchRequest(Long sinceId, Long maxId,
-            Callback<TimelineResult<Tweet>> cb) {
-        return super.createSearchRequest(sinceId, maxId, cb);
+    public Call<Search> createSearchRequest(Long sinceId, Long maxId) {
+        return super.createSearchRequest(sinceId, maxId);
     }
 }

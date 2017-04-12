@@ -21,8 +21,6 @@
     <!--TweetView-->
 
     <!--Container-->
-    <dimen name="tw__tweet_container_width">1dp</dimen>
-    <dimen name="tw__tweet_container_padding_top">0dp</dimen>
     <dimen name="tw__tweet_container_bottom_separator">18dp</dimen>
     <!--Retweeted By line-->
     <dimen name="tw__tweet_retweeted_by_margin_top">10dp</dimen>
@@ -39,9 +37,9 @@
     <dimen name="tw__tweet_logo_margin_top">18dp</dimen>
     <dimen name="tw__tweet_logo_margin_right">20dp</dimen>
     <!--Tweet Author Attribution-->
+    <dimen name="tw__tweet_full_name_margin_right">36dp</dimen>
     <dimen name="tw__tweet_full_name_margin_top">15dp</dimen>
-    <dimen name="tw__tweet_verified_margin_bottom">3dp</dimen>
-    <dimen name="tw__tweet_verified_check_padding_left">3dp</dimen>
+    <dimen name="tw__tweet_full_name_drawable_padding">3dp</dimen>
     <dimen name="tw__tweet_screen_name_margin_top">-4dp</dimen>
     <dimen name="tw__tweet_screen_name_margin_bottom">1dp</dimen>
     <dimen name="tw__tweet_timestamp_margin_top">-4dp</dimen>
@@ -59,12 +57,22 @@
     <dimen name="tw__tweet_action_share_padding">14dp</dimen>
 
     <!--Tweet Media-->
-    <item name="tw__tweet_media_aspect_ratio" format="float" type="dimen">1.777777</item>
     <dimen name="tw__tweet_media_badge_margin">4dp</dimen>
-    <dimen name="tw__gif_badge_padding">4dp</dimen>
+    <dimen name="tw__badge_padding">4dp</dimen>
+    <dimen name="tw__media_view_divider_size">1dp</dimen>
+    <dimen name="tw__media_view_radius">5dp</dimen>
+
+    <!-- CTA -->
+    <dimen name="tw__cta_margin_top">12dp</dimen>
+    <dimen name="tw__cta_padding">8dp</dimen>
+    <dimen name="tw__cta_border_size">1dp</dimen>
+    <dimen name="tw__cta_radius">14dp</dimen>
+
+    <!-- Quote Tweet container -->
+    <dimen name="tw__tweet_quote_tweet_margin_horizontal">20dp</dimen>
+    <dimen name="tw__tweet_quote_tweet_margin_top">8dp</dimen>
 
     <!--CompactTweetView-->
-
     <!--Container-->
     <dimen name="tw__compact_tweet_container_padding_top">10.5dp</dimen>
     <dimen name="tw__compact_tweet_container_bottom_separator">13dp</dimen>
@@ -82,6 +90,7 @@
     <dimen name="tw__compact_tweet_logo_margin_top">5dp</dimen>
     <dimen name="tw__compact_tweet_logo_margin_right">12dp</dimen>
     <!--Tweet Author Attribution-->
+    <dimen name="tw__compact_tweet_full_name_margin_right">0dp</dimen>
     <dimen name="tw__compact_tweet_attribution_line_margin_right">36dp</dimen>
     <dimen name="tw__compact_tweet_full_name_margin_top">0dp</dimen>
     <dimen name="tw__compact_tweet_screen_name_layout_width">0dp</dimen>
@@ -99,25 +108,32 @@
     <dimen name="tw__compact_tweet_text_margin_right">12dp</dimen>
     <!--Tweet actions-->
     <dimen name="tw__compact_tweet_action_bar_offset_left">-12dp</dimen>
+    <!-- Quote Tweet container -->
+    <dimen name="tw__compact_tweet_quote_tweet_margin_left">0dp</dimen>
+    <dimen name="tw__compact_tweet_quote_tweet_margin_right">12dp</dimen>
+
+    <!-- Quote Tweet -->
+    <dimen name="tw__quote_tweet_media_margin_horizontal">1dp</dimen>
+    <dimen name="tw__quote_tweet_media_margin_bottom">1dp</dimen>
+    <dimen name="tw__quote_tweet_text_margin_horizontal">8dp</dimen>
+    <dimen name="tw__quote_tweet_text_margin_bottom">8dp</dimen>
+    <dimen name="tw__quote_tweet_attribution_text_margin_horizontal">8dp</dimen>
+    <dimen name="tw__quote_tweet_attribution_text_margin_top">7dp</dimen>
+    <dimen name="tw__quote_tweet_border_width">1dp</dimen>
 
     <!-- Text sizes -->
-    <!--density-independent(micro 10dp, small 12dp, medium 14dp, large 16dp)-->
-    <dimen name="tw__text_size_large">16dp</dimen>
-    <dimen name="tw__text_size_medium">14dp</dimen>
-    <dimen name="tw__text_size_small">12dp</dimen>
+    <!--density-independent(micro 10sp, small 12sp, medium 14sp, large 16sp)-->
+    <dimen name="tw__text_size_large">16sp</dimen>
+    <dimen name="tw__text_size_medium">14sp</dimen>
+    <dimen name="tw__text_size_small">12sp</dimen>
 
-    <!-- login -->
-    <dimen name="tw__login_btn_radius">5dp</dimen>
-    <dimen name="tw__login_btn_text_size">14sp</dimen>
-    <dimen name="tw__login_btn_height">32dp</dimen>
-    <dimen name="tw__login_btn_drawable_padding">4dp</dimen>
-    <dimen name="tw__login_btn_left_padding">8dp</dimen>
-    <dimen name="tw__login_btn_right_padding">12dp</dimen>
-
+    <!-- Video controls -->
     <dimen name="tw__seekbar_thumb_size">32dp</dimen>
     <dimen name="tw__seekbar_thumb_outer_padding">7dp</dimen>
     <dimen name="tw__seekbar_thumb_inner_padding">13dp</dimen>
     <dimen name="tw__video_control_height">32dp</dimen>
     <dimen name="tw__video_control_text_size">13sp</dimen>
 
+    <!-- Gallery sizes -->
+    <dimen name="tw__gallery_page_margin">12dp</dimen>
 </resources>

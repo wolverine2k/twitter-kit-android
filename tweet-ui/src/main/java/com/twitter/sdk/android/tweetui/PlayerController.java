@@ -17,12 +17,15 @@
 
 package com.twitter.sdk.android.tweetui;
 
+import android.content.Intent;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.view.View;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
-import com.twitter.sdk.android.core.models.MediaEntity;
-import com.twitter.sdk.android.tweetui.internal.TweetMediaUtils;
+import com.twitter.sdk.android.core.IntentUtils;
+import com.twitter.sdk.android.tweetui.internal.SwipeToDismissTouchListener;
 import com.twitter.sdk.android.tweetui.internal.VideoControlView;
 import com.twitter.sdk.android.tweetui.internal.VideoView;
 
@@ -32,33 +35,90 @@ class PlayerController {
     private static final String TAG = "PlayerController";
     final VideoView videoView;
     final VideoControlView videoControlView;
+    final ProgressBar videoProgressView;
+    final TextView callToActionView;
+    View rootView;
+    int seekPosition = 0;
+    boolean isPlaying = true;
+    final SwipeToDismissTouchListener.Callback callback;
 
-    PlayerController(VideoView videoView, VideoControlView videoControlView) {
-        this.videoView = videoView;
-        this.videoControlView = videoControlView;
+    PlayerController(View rootView, SwipeToDismissTouchListener.Callback callback) {
+        this.rootView = rootView;
+        this.videoView = (VideoView) rootView.findViewById(R.id.video_view);
+        this.videoControlView = (VideoControlView) rootView.findViewById(R.id.video_control_view);
+        this.videoProgressView = (ProgressBar) rootView.findViewById(R.id.video_progress_view);
+        this.callToActionView = (TextView) rootView.findViewById(R.id.call_to_action_view);
+        this.callback = callback;
     }
 
-    void prepare(MediaEntity entity) {
-        try {
-            final boolean looping = TweetMediaUtils.isLooping(entity);
-            final String url = TweetMediaUtils.getSupportedVariant(entity).url;
-            final Uri uri = Uri.parse(url);
+    // Unit testing purposes
+    PlayerController(View rootView, VideoView videoView, VideoControlView videoControlView,
+            ProgressBar videoProgressView, TextView callToActionView,
+            SwipeToDismissTouchListener.Callback callback) {
+        this.rootView = rootView;
+        this.videoView = videoView;
+        this.videoControlView = videoControlView;
+        this.videoProgressView = videoProgressView;
+        this.callToActionView = callToActionView;
+        this.callback = callback;
+    }
 
-            setUpMediaControl(looping);
-            videoView.setVideoURI(uri, looping);
-            videoView.requestFocus();
+    void prepare(PlayerActivity.PlayerItem item) {
+        try {
+            setUpCallToAction(item);
+            setUpMediaControl(item.looping, item.showVideoControls);
+            final View.OnTouchListener listener = SwipeToDismissTouchListener
+                    .createFromView(videoView, callback);
+            videoView.setOnTouchListener(listener);
             videoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                @Override
                 public void onPrepared(MediaPlayer mediaPlayer) {
-                    videoView.start();
+                    videoProgressView.setVisibility(View.GONE);
                 }
             });
+            videoView.setOnInfoListener(new MediaPlayer.OnInfoListener() {
+                @Override
+                public boolean onInfo(MediaPlayer mediaPlayer, int what, int extra) {
+                    if (what == MediaPlayer.MEDIA_INFO_BUFFERING_END) {
+                        videoProgressView.setVisibility(View.GONE);
+                        return true;
+                    } else if (what == MediaPlayer.MEDIA_INFO_BUFFERING_START) {
+                        videoProgressView.setVisibility(View.VISIBLE);
+                        return true;
+                    }
+                    return false;
+                }
+            });
+            final Uri uri = Uri.parse(item.url);
+            videoView.setVideoURI(uri, item.looping);
+            videoView.requestFocus();
         } catch (Exception e) {
             Fabric.getLogger().e(TAG, "Error occurred during video playback", e);
         }
     }
 
-    void setUpMediaControl(boolean looping) {
-        if (looping) {
+    void onResume() {
+        if (seekPosition != 0) {
+            videoView.seekTo(seekPosition);
+        }
+        if (isPlaying) {
+            videoView.start();
+            videoControlView.update();
+        }
+    }
+
+    void onPause() {
+        isPlaying = videoView.isPlaying();
+        seekPosition = videoView.getCurrentPosition();
+        videoView.pause();
+    }
+
+    void onDestroy() {
+        videoView.stopPlayback();
+    }
+
+    void setUpMediaControl(boolean looping, boolean showVideoControls) {
+        if (looping && !showVideoControls) {
             setUpLoopControl();
         } else {
             setUpMediaControl();
@@ -83,7 +143,38 @@ class PlayerController {
         videoView.setMediaController(videoControlView);
     }
 
-    void cleanup() {
-        videoView.stopPlayback();
+    void setUpCallToAction(PlayerActivity.PlayerItem item) {
+        if (item.callToActionText != null && item.callToActionUrl != null) {
+            callToActionView.setVisibility(View.VISIBLE);
+            callToActionView.setText(item.callToActionText);
+            setUpCallToActionListener(item.callToActionUrl);
+            setUpRootViewOnClickListener();
+        }
     }
+
+    void setUpCallToActionListener(final String callToActionUrl) {
+        callToActionView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final Uri uri = Uri.parse(callToActionUrl);
+                final Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                IntentUtils.safeStartActivity(callToActionView.getContext(), intent);
+            }
+        });
+    }
+
+    void setUpRootViewOnClickListener() {
+        rootView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (callToActionView.getVisibility() == View.VISIBLE) {
+                    callToActionView.setVisibility(View.GONE);
+                } else {
+                    callToActionView.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+    }
+
+
 }

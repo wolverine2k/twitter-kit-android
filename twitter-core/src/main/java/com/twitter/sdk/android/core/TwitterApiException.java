@@ -17,62 +17,44 @@
 
 package com.twitter.sdk.android.core;
 
+import android.text.TextUtils;
+
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
-import io.fabric.sdk.android.Fabric;
-import com.twitter.sdk.android.core.internal.TwitterApiConstants;
 import com.twitter.sdk.android.core.models.ApiError;
+import com.twitter.sdk.android.core.models.ApiErrors;
+import com.twitter.sdk.android.core.models.SafeListAdapter;
+import com.twitter.sdk.android.core.models.SafeMapAdapter;
 
-import java.io.UnsupportedEncodingException;
-
-import retrofit.RetrofitError;
-import retrofit.mime.TypedByteArray;
+import io.fabric.sdk.android.Fabric;
+import retrofit2.Response;
 
 /**
  * Represents a Twitter API error.
  */
 public class TwitterApiException extends TwitterException {
     public static final int DEFAULT_ERROR_CODE = 0;
-
-    private final RetrofitError retrofitError;
-    private final TwitterRateLimit twitterRateLimit;
     private final ApiError apiError;
+    private final TwitterRateLimit twitterRateLimit;
+    private final int code;
+    private final Response response;
 
-    TwitterApiException(ApiError apiError, TwitterRateLimit twitterRateLimit,
-                        RetrofitError retrofitError) {
-        super(retrofitError.getMessage());
-        this.retrofitError = retrofitError;
+    public TwitterApiException(Response response) {
+        this(response, readApiError(response), readApiRateLimit(response), response.code());
+    }
+
+    TwitterApiException(Response response, ApiError apiError, TwitterRateLimit twitterRateLimit,
+            int code) {
+        super(createExceptionMessage(code));
         this.apiError = apiError;
         this.twitterRateLimit = twitterRateLimit;
+        this.code = code;
+        this.response = response;
     }
 
-    TwitterApiException(RetrofitError retrofitError) {
-
-        super(createExceptionMessage(retrofitError));
-        setStackTrace(retrofitError.getStackTrace());
-
-        this.retrofitError = retrofitError;
-        twitterRateLimit = createRateLimit(retrofitError);
-        apiError = readApiError(retrofitError);
-    }
-
-    private static String createExceptionMessage(RetrofitError retrofitError) {
-        if (retrofitError.getMessage() != null) {
-            return retrofitError.getMessage();
-        }
-        if (retrofitError.getResponse() != null) {
-            return "Status: " + retrofitError.getResponse().getStatus();
-        }
-        return "unknown error";
-    }
-
-    private static TwitterRateLimit createRateLimit(RetrofitError retrofitError) {
-        if (retrofitError.getResponse() != null) {
-            return new TwitterRateLimit(retrofitError.getResponse().getHeaders());
-        }
-        return null;
+    public int getStatusCode() {
+        return code;
     }
 
     /**
@@ -81,7 +63,7 @@ public class TwitterApiException extends TwitterException {
      * @return API error code
      */
     public int getErrorCode() {
-        return apiError == null ? DEFAULT_ERROR_CODE : apiError.getCode();
+        return apiError == null ? DEFAULT_ERROR_CODE : apiError.code;
     }
 
     /**
@@ -90,63 +72,53 @@ public class TwitterApiException extends TwitterException {
      * @return API error message
      */
     public String getErrorMessage() {
-        return apiError == null ? null : apiError.getMessage();
-    }
-
-    public boolean canRetry() {
-        final int status = retrofitError.getResponse().getStatus();
-        return status < 400 || status > 499;
-    }
-
-    public RetrofitError getRetrofitError() {
-        return retrofitError;
+        return apiError == null ? null : apiError.message;
     }
 
     public TwitterRateLimit getTwitterRateLimit() {
         return twitterRateLimit;
     }
 
-    public static final TwitterApiException convert(RetrofitError retrofitError) {
-        return new TwitterApiException(retrofitError);
+    public Response getResponse() {
+        return response;
     }
 
-    public static ApiError readApiError(RetrofitError retrofitError) {
-        if (retrofitError == null || retrofitError.getResponse() == null ||
-                retrofitError.getResponse().getBody() == null) {
-            return null;
-        }
-        final byte[] responseBytes = ((TypedByteArray) retrofitError.getResponse().getBody())
-                .getBytes();
+    public static TwitterRateLimit readApiRateLimit(Response response) {
+        return new TwitterRateLimit(response.headers());
+    }
 
-        if (responseBytes == null) return null;
-        final String response;
+    public static ApiError readApiError(Response response) {
         try {
-            response = new String(responseBytes, "UTF-8");
-            return parseApiError(response);
-        } catch (UnsupportedEncodingException e) {
-            Fabric.getLogger().e(TwitterCore.TAG, "Failed to convert to string", e);
+            // The response buffer can only be read once, so we clone the underlying buffer so the
+            // response can be consumed down stream if necessary.
+            final String body = response.errorBody().source().buffer().clone().readUtf8();
+            if (!TextUtils.isEmpty(body)) {
+                return parseApiError(body);
+            }
+        } catch (Exception e) {
+            Fabric.getLogger().e(TwitterCore.TAG, "Unexpected response", e);
         }
+
         return null;
     }
 
-    static ApiError parseApiError(String response) {
-        final Gson gson = new Gson();
+    static ApiError parseApiError(String body) {
+        final Gson gson = new GsonBuilder()
+                .registerTypeAdapterFactory(new SafeListAdapter())
+                .registerTypeAdapterFactory(new SafeMapAdapter())
+                .create();
         try {
-            // Get the "errors" object
-            final JsonObject responseObj = new JsonParser().parse(response).getAsJsonObject();
-            final ApiError[] apiErrors = gson.fromJson(
-                    responseObj.get(TwitterApiConstants.Errors.ERRORS), ApiError[].class);
-            if (apiErrors.length == 0) {
-                return null;
-            } else {
-                // return the first api error.
-                return apiErrors[0];
+            final ApiErrors apiErrors = gson.fromJson(body, ApiErrors.class);
+            if (!apiErrors.errors.isEmpty()) {
+                return apiErrors.errors.get(0);
             }
         } catch (JsonSyntaxException e) {
-            Fabric.getLogger().e(TwitterCore.TAG, "Invalid json: " + response, e);
-        } catch (Exception e) {
-            Fabric.getLogger().e(TwitterCore.TAG, "Unexpected response: " + response, e);
+            Fabric.getLogger().e(TwitterCore.TAG, "Invalid json: " + body, e);
         }
         return null;
+    }
+
+    static String createExceptionMessage(int code) {
+        return "HTTP request failed, Status: " + code;
     }
 }

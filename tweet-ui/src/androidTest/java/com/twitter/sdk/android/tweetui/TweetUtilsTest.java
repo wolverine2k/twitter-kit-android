@@ -23,18 +23,18 @@ import io.fabric.sdk.android.FabricAndroidTestCase;
 import io.fabric.sdk.android.FabricTestUtils;
 import io.fabric.sdk.android.KitStub;
 
-import com.twitter.sdk.android.core.Callback;
 import com.twitter.sdk.android.core.TwitterCore;
+import com.twitter.sdk.android.core.models.Card;
 import com.twitter.sdk.android.core.models.Tweet;
 import com.twitter.sdk.android.core.models.TweetBuilder;
+import com.twitter.sdk.android.core.models.TweetEntities;
 import com.twitter.sdk.android.core.models.UserBuilder;
 
-import static org.mockito.Mockito.*;
-
 public class TweetUtilsTest extends FabricAndroidTestCase {
-    private static final String A_FULL_PERMALINK = "https://twitter.com/jack/status/20";
+    private static final String A_FULL_PERMALINK =
+            "https://twitter.com/jack/status/20?ref_src=twsrc%5Etwitterkit";
     private static final String A_PERMALINK_WITH_NO_SCREEN_NAME
-            = "https://twitter.com/twitter_unknown/status/20";
+            = "https://twitter.com/twitter_unknown/status/20?ref_src=twsrc%5Etwitterkit";
     private static final String A_VALID_SCREEN_NAME = "jack";
     private static final int A_VALID_TWEET_ID = 20;
     private static final int AN_INVALID_TWEET_ID = 0;
@@ -43,7 +43,7 @@ public class TweetUtilsTest extends FabricAndroidTestCase {
         FabricTestUtils.resetFabric();
         try {
             FabricTestUtils.with(getContext(), new KitStub<TwitterCore>());
-            TweetUtils.loadTweet(TestFixtures.TEST_TWEET_ID, (Callback) null);
+            TweetUtils.loadTweet(TestFixtures.TEST_TWEET_ID, null);
             fail("IllegalStateException not thrown");
         } catch (IllegalStateException e) {
             assertEquals(TweetUi.NOT_STARTED_ERROR, e.getMessage());
@@ -58,7 +58,7 @@ public class TweetUtilsTest extends FabricAndroidTestCase {
         FabricTestUtils.resetFabric();
         try {
             FabricTestUtils.with(getContext(), new KitStub<TwitterCore>());
-            TweetUtils.loadTweets(TestFixtures.TWEET_IDS, (Callback) null);
+            TweetUtils.loadTweets(TestFixtures.TWEET_IDS, null);
             fail("IllegalStateException not thrown");
         } catch (IllegalStateException e) {
             assertEquals(TweetUi.NOT_STARTED_ERROR, e.getMessage());
@@ -171,5 +171,30 @@ public class TweetUtilsTest extends FabricAndroidTestCase {
 
     public void testGetDisplayTweet_nonRetweet() {
         assertEquals(TestFixtures.TEST_TWEET, TweetUtils.getDisplayTweet(TestFixtures.TEST_TWEET));
+    }
+
+    public void testShowQuoteTweet() {
+        final Tweet tweet = new TweetBuilder()
+                .copy(TestFixtures.TEST_TWEET)
+                .setQuotedStatus(TestFixtures.TEST_TWEET)
+                .build();
+        assertTrue(TweetUtils.showQuoteTweet(tweet));
+    }
+
+    public void testShowQuoteTweet_withCardAndQuoteTweet() {
+        final Tweet tweet = new TweetBuilder()
+                .setQuotedStatus(TestFixtures.TEST_TWEET)
+                .setCard(new Card(null, "Vine"))
+                .setEntities(new TweetEntities(null, null, null, null, null))
+                .build();
+        assertFalse(TweetUtils.showQuoteTweet(tweet));
+    }
+
+    public void testShowQuoteTweet_withMediaAndQuoteTweet() {
+        final Tweet tweet = new TweetBuilder()
+                .copy(TestFixtures.TEST_PHOTO_TWEET)
+                .setQuotedStatus(TestFixtures.TEST_TWEET)
+                .build();
+        assertFalse(TweetUtils.showQuoteTweet(tweet));
     }
 }

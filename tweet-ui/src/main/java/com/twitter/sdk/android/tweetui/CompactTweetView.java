@@ -17,9 +17,7 @@
 
 package com.twitter.sdk.android.tweetui;
 
-import android.annotation.TargetApi;
 import android.content.Context;
-import android.os.Build;
 import android.util.AttributeSet;
 
 import com.twitter.sdk.android.core.models.MediaEntity;
@@ -30,6 +28,7 @@ public class CompactTweetView extends BaseTweetView {
     private static final double SQUARE_ASPECT_RATIO = 1.0;
     private static final double MAX_LANDSCAPE_ASPECT_RATIO = 3.0;
     private static final double MIN_LANDSCAPE_ASPECT_RATIO = 4.0 / 3.0;
+    private static final double DEFAULT_ASPECT_RATIO_MEDIA_CONTAINER = 16.0 / 10.0;
 
     public CompactTweetView(Context context, Tweet tweet) {
         super(context, tweet);
@@ -48,7 +47,6 @@ public class CompactTweetView extends BaseTweetView {
         super(context, attrs);
     }
 
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public CompactTweetView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
     }
@@ -61,8 +59,23 @@ public class CompactTweetView extends BaseTweetView {
     @Override
     void render() {
         super.render();
-        // Redraw screen name on recycle
+
+        // Redraw screen name on recycle, because TextView doesn't resize when text length changes
         screenNameView.requestLayout();
+    }
+
+    @Override
+    protected void applyStyles() {
+        super.applyStyles();
+
+        final int paddingTop = getResources()
+                .getDimensionPixelSize(R.dimen.tw__compact_tweet_container_padding_top);
+        setPadding(0, paddingTop, 0, 0);
+
+        final int mediaViewRadius =
+                getResources().getDimensionPixelSize(R.dimen.tw__media_view_radius);
+        tweetMediaView.setRoundedCornersRadii(mediaViewRadius, mediaViewRadius,
+                mediaViewRadius, mediaViewRadius);
     }
 
     /**
@@ -87,6 +100,17 @@ public class CompactTweetView extends BaseTweetView {
             // landscape photos between 3:1 to 4:3 present the original width to height ratio
             return ratio;
         }
+    }
+
+    /**
+     * Returns the desired aspect ratio for Tweet that contains photo entities
+     *
+     * @param photoCount total count of photo entities
+     * @return the target image and bitmap width to height aspect ratio
+     */
+    @Override
+    protected double getAspectRatioForPhotoEntity(int photoCount) {
+        return DEFAULT_ASPECT_RATIO_MEDIA_CONTAINER;
     }
 
     @Override

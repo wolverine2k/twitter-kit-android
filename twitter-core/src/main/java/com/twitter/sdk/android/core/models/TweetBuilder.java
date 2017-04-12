@@ -17,6 +17,7 @@
 
 package com.twitter.sdk.android.core.models;
 
+import java.util.Collections;
 import java.util.List;
 
 public class TweetBuilder {
@@ -39,16 +40,21 @@ public class TweetBuilder {
     private Place place;
     private boolean possiblySensitive;
     private Object scopes;
+    private long quotedStatusId;
+    private String quotedStatusIdStr;
+    private Tweet quotedStatus;
     private int retweetCount;
     private boolean retweeted;
     private Tweet retweetedStatus;
     private String source;
     private String text;
+    private List<Integer> displayTextRange = Collections.EMPTY_LIST;
     private boolean truncated;
     private User user;
     private boolean withheldCopyright;
-    private List<String> withheldInCountries;
+    private List<String> withheldInCountries = Collections.EMPTY_LIST;
     private String withheldScope;
+    private Card card;
 
     public TweetBuilder setCoordinates(Coordinates coordinates) {
         this.coordinates = coordinates;
@@ -145,6 +151,21 @@ public class TweetBuilder {
         return this;
     }
 
+    public TweetBuilder setQuotedStatusId(long quotedStatusId) {
+        this.quotedStatusId = quotedStatusId;
+        return this;
+    }
+
+    public TweetBuilder setQuotedStatusIdStr(String quotedStatusIdStr) {
+        this.quotedStatusIdStr = quotedStatusIdStr;
+        return this;
+    }
+
+    public TweetBuilder setQuotedStatus(Tweet quotedStatus) {
+        this.quotedStatus = quotedStatus;
+        return this;
+    }
+
     public TweetBuilder setRetweetCount(int retweetCount) {
         this.retweetCount = retweetCount;
         return this;
@@ -167,6 +188,11 @@ public class TweetBuilder {
 
     public TweetBuilder setText(String text) {
         this.text = text;
+        return this;
+    }
+
+    public TweetBuilder setDisplayTextRange(List<Integer> displayTextRange) {
+        this.displayTextRange = displayTextRange;
         return this;
     }
 
@@ -195,6 +221,11 @@ public class TweetBuilder {
         return this;
     }
 
+    public TweetBuilder setCard(Card card) {
+        this.card = card;
+        return this;
+    }
+
     public TweetBuilder copy(Tweet tweet) {
         this.coordinates = tweet.coordinates;
         this.createdAt = tweet.createdAt;
@@ -215,16 +246,21 @@ public class TweetBuilder {
         this.place = tweet.place;
         this.possiblySensitive = tweet.possiblySensitive;
         this.scopes = tweet.scopes;
+        this.quotedStatusId = tweet.quotedStatusId;
+        this.quotedStatusIdStr = tweet.quotedStatusIdStr;
+        this.quotedStatus = tweet.quotedStatus;
         this.retweetCount = tweet.retweetCount;
         this.retweeted = tweet.retweeted;
         this.retweetedStatus = tweet.retweetedStatus;
         this.source = tweet.source;
         this.text = tweet.text;
+        this.displayTextRange = tweet.displayTextRange;
         this.truncated = tweet.truncated;
         this.user = tweet.user;
         this.withheldCopyright = tweet.withheldCopyright;
         this.withheldInCountries = tweet.withheldInCountries;
         this.withheldScope = tweet.withheldScope;
+        this.card = tweet.card;
         return this;
     }
 
@@ -232,8 +268,9 @@ public class TweetBuilder {
         return new Tweet(coordinates, createdAt, currentUserRetweet, entities, extendedEtities,
                 favoriteCount, favorited, filterLevel, id, idStr, inReplyToScreenName,
                 inReplyToStatusId, inReplyToStatusIdStr, inReplyToUserId, inReplyToUserIdStr,
-                lang, place, possiblySensitive, scopes, retweetCount, retweeted,
-                retweetedStatus, source, text, truncated, user, withheldCopyright,
-                withheldInCountries, withheldScope);
+                lang, place, possiblySensitive, scopes, quotedStatusId, quotedStatusIdStr,
+                quotedStatus, retweetCount, retweeted, retweetedStatus, source, text,
+                displayTextRange, truncated, user, withheldCopyright, withheldInCountries,
+                withheldScope, card);
     }
 }

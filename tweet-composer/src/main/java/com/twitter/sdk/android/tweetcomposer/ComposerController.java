@@ -32,20 +32,20 @@ import com.twitter.sdk.android.core.internal.TwitterApiConstants;
 import com.twitter.sdk.android.core.models.User;
 
 class ComposerController {
-    ComposerView composerView;
-    TwitterSession session;
-    Card card;
-    ComposerActivity.Finisher finisher;
+    final ComposerView composerView;
+    final TwitterSession session;
+    final Card card;
+    final ComposerActivity.Finisher finisher;
     final DependencyProvider dependencyProvider;
 
     ComposerController(final ComposerView composerView, TwitterSession session, Card card,
-                       ComposerActivity.Finisher finisher) {
-        this(composerView, session, card, finisher, new DependencyProvider());
+                       String hashtags, ComposerActivity.Finisher finisher) {
+        this(composerView, session, card, hashtags, finisher, new DependencyProvider());
     }
 
     // testing purposes
     ComposerController(final ComposerView composerView, TwitterSession session, Card card,
-                       ComposerActivity.Finisher finisher,
+                       String hashtags, ComposerActivity.Finisher finisher,
             DependencyProvider dependencyProvider) {
         this.composerView = composerView;
         this.session = session;
@@ -54,16 +54,15 @@ class ComposerController {
         this.dependencyProvider = dependencyProvider;
 
         composerView.setCallbacks(new ComposerCallbacksImpl());
-        composerView.setTweetText("");
-        composerView.setCursorAtEnd();
+        composerView.setTweetText(hashtags);
         setProfilePhoto();
         setCardView(card);
         dependencyProvider.getScribeClient().impression(card);
     }
 
     void setProfilePhoto() {
-        dependencyProvider.getApiClient(session).getAccountService().verifyCredentials(false, true,
-                new Callback<User>() {
+        dependencyProvider.getApiClient(session).getAccountService().verifyCredentials(false, true)
+                .enqueue(new Callback<User>() {
                     @Override
                     public void success(Result<User> result) {
                         composerView.setProfilePhotoView(result.data);

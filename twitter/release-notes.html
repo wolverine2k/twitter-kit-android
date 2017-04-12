@@ -1,4 +1,79 @@
 <h2>Twitter</h2>
+
+<h3>2.3.2</h3>
+- Videos less than 6.5 seconds now loop.<br/>
+- Fixed issue where quote Tweets with media showed both media and quote Tweet. Only media should be shown if both are included.<br/>
+- Added ability to set geocode for SearchTimeline builder.<br/>
+- Updated Tweet UI and Twitter Core dependencies.<br/>
+
+<h3>2.3.1</h3>
+- Restricted Broadcast Intents to current application to avoid leaking sensitive information. <br/>
+- Improved RTL mirroring for Tweet views. <br/>
+- Dates are now properly localized for non-English locales. <br/>
+- Updated Tweet UI and Twitter Core dependencies. <br/>
+
+<h3>2.3.0</h3>
+- Added support for timeline filtering. <br/>
+- Normalized user-agent to avoid errors with non-ascii characters. <br/>
+- Added symbols to Tweet entities. <br/>
+
+<h3>2.2.0</h3>
+- Added support for quote Tweet display. <br/>
+- Added support for user defined OkHttpClient. <br/>
+- Updated Twitter UI and Twitter Core dependencies. <br/>
+
+<h3>2.1.1</h3>
+- Fixed UnsupportedOperationException when rendering multiple photos API 17 and below.<br/>
+- Updated Tweet UI dependency to version 2.1.1.<br/>
+
+<h3>2.1.0</h3>
+- Added multi-photo support for inline views and the fullscreen gallery view.<br/>
+- Fixed IllegalArgumentException in GuestAuthenticator.<br/>
+- Updated Twitter Core dependency to version 2.1.0.<br/>
+
+<h3>2.0.1</h3>
+- Updated proguard rules for Okhttp3 and Retrofit2.<br/>
+- Added translations for Twitter Composer.<br/>
+- Removed pseudo locales from translations.<br/>
+- Moved TwitterCollection from internal package to models.<br/>
+- Minor bug fixes.<br/>
+
+<h3>2.0.0</h3>
+- Dropped support for API versions before API 14 (ICS).<br/>
+- Migrated to Retrofit 2.0 and OkHttp 3.2.<br/>
+- TwitterApiClient now automatically refreshes expired guest tokens.<br/>
+- Removed previously deprecated methods and classes.<br/>
+- Removed all public reference to Application Authentication.<br/>
+- Fixed issue parsing withheldInCountries field in User object.<br/>
+- Added altText field to MediaEntity object.<br/>
+- Added contentDescription for media based on altText field.<br/>
+- Added Quote Tweet to Tweet object.<br/>
+
+<h3>1.14.1</h3>
+- Bump Digits and tweet-ui dependencies
+
+<h3>1.14.0</h3>
+- Added support for Vine in Tweets<br/>
+- Enabled extended Tweet display<br/>
+
+<h3>1.13.3</h3>
+- Fixed Fake ID exploit<br/>
+- Updated Twitter Core Dependency<br/>
+
+<h3>1.13.2</h3>
+- Allow #hashtags to be pre-filled in Composer<br/>
+- Updated Fabric Dependency<br/>
+
+<h3>1.13.1</h3>
+- Fixed security issue where certificate pinning wasn't happening for some requests.<br/>
+- Added HLS playback support. Removed WebM playback support.<br/>
+- Added loading and buffering spinners to video player.<br/>
+
+<h3>1.13.0</h3>
+- Added click listeners on Tweet views for URL and media clicks.<br/>
+- Fixed JavaDocs.<br/>
+- Removed Verisign Class 3 Certificate from pinning list.<br/>
+
 <h3>1.12.1</h3>
 - Fixed retrieving auth token when using OkHttp 2.3+.<br/>
 - Added gif or duration badge to media view.<br/>

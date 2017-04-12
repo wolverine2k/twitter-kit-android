@@ -17,9 +17,6 @@
 
 package com.twitter.sdk.android.core.internal.oauth;
 
-import io.fabric.sdk.android.services.common.CommonUtils;
-import io.fabric.sdk.android.services.network.HttpRequest;
-
 import com.twitter.sdk.android.core.BuildConfig;
 import com.twitter.sdk.android.core.Callback;
 import com.twitter.sdk.android.core.Result;
@@ -35,19 +32,17 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.annotation.Config;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
 
-import retrofit.client.Response;
-import retrofit.http.Body;
-import retrofit.http.Header;
-import retrofit.http.Query;
-import retrofit.mime.TypedInput;
+import javax.net.ssl.SSLSocketFactory;
+
+import okhttp3.MediaType;
+import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Response;
+import retrofit2.http.Header;
+import retrofit2.http.Query;
+import retrofit2.mock.Calls;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -58,17 +53,22 @@ import static org.mockito.Mockito.*;
 
 @RunWith(RobolectricGradleTestRunner.class)
 @Config(constants = BuildConfig.class, sdk = 21)
+@SuppressWarnings("checkstyle:linelength")
 public class OAuth1aServiceTest {
 
     private TwitterAuthConfig authConfig;
     private TwitterCore twitterCore;
     private OAuth1aService service;
+    private SSLSocketFactory sslSocketFactory;
+    private TwitterApi twitterApi;
 
     @Before
     public void setUp() throws Exception {
         authConfig = new TwitterAuthConfig("key", "secret");
         twitterCore = new TwitterCore(authConfig);
-        service = new OAuth1aService(twitterCore, null , new TwitterApi());
+        sslSocketFactory = (SSLSocketFactory) SSLSocketFactory.getDefault();
+        twitterApi = new TwitterApi();
+        service = new OAuth1aService(twitterCore, sslSocketFactory, twitterApi);
     }
 
     @Test
@@ -82,32 +82,15 @@ public class OAuth1aServiceTest {
     }
 
     @Test
-    public void testSignRequest() throws MalformedURLException {
-        final TwitterAuthConfig config = new TwitterAuthConfig("consumerKey", "consumerSecret");
-        final TwitterAuthToken accessToken = new TwitterAuthToken("token", "tokenSecret");
-
-        final HttpURLConnection connection = mock(HttpURLConnection.class);
-        when(connection.getRequestMethod()).thenReturn("GET");
-        when(connection.getURL())
-                .thenReturn(new URL("https://api.twitter.com/1.1/statuses/home_timeline.json"));
-
-        OAuth1aService.signRequest(config, accessToken, connection, null);
-        verify(connection)
-                .setRequestProperty(eq(HttpRequest.HEADER_AUTHORIZATION), any(String.class));
-
-        // TODO: Make it so that nonce and timestamp can be specified for testing puproses?
-    }
-
-    @Test
     public void testRequestTempToken() {
         service.api = new MockOAuth1aService() {
             @Override
-            public void getTempToken(@Header(AuthHeaders.HEADER_AUTHORIZATION) String auth,
-                                     @Body String dummy, Callback<Response> cb) {
+            public Call<ResponseBody> getTempToken(@Header(OAuthConstants.HEADER_AUTHORIZATION) String auth) {
                 assertTrue(auth.contains(OAuthConstants.PARAM_CALLBACK));
+                return super.getTempToken(auth);
             }
         };
-        service.requestTempToken(null);
+        service.requestTempToken(mock(Callback.class));
     }
 
     @Test
@@ -116,23 +99,22 @@ public class OAuth1aServiceTest {
         final String verifier = "verifier";
         service.api = new MockOAuth1aService() {
             @Override
-            public void getAccessToken(@Header(AuthHeaders.HEADER_AUTHORIZATION) String auth,
-                                       @Query(OAuthConstants.PARAM_VERIFIER) String innerVerifier,
-                                       @Body String dummy, Callback<Response> cb) {
+            public Call<ResponseBody> getAccessToken(@Header(OAuthConstants.HEADER_AUTHORIZATION) String auth,
+                                                     @Query(OAuthConstants.PARAM_VERIFIER) String innerVerifier) {
 
                 assertEquals(verifier, innerVerifier);
                 assertNotNull(auth);
                 assertTrue(auth.contains(token.token));
+
+                return super.getAccessToken(auth, innerVerifier);
             }
         };
-        service.requestAccessToken(null, token, verifier);
+        service.requestAccessToken(mock(Callback.class), token, verifier);
     }
 
     @Test
     public void testApiHost() {
-        final TwitterApi api = new TwitterApi();
-        final OAuth1aService localService = new OAuth1aService(twitterCore, null, api);
-        assertEquals(api, localService.getApi());
+        assertEquals(twitterApi, service.getApi());
     }
 
     @Test
@@ -245,19 +227,12 @@ public class OAuth1aServiceTest {
     }
 
     private void setupCallbackWrapperTest(String responseStr,
-            Callback<OAuthResponse> authResponseCallback) throws IOException {
-        final Callback<Response> callbackWrapper = service.getCallbackWrapper(authResponseCallback);
-        final TypedInput mockValue = mock(TypedInput.class);
-        final Response mockResponse = new Response("url", HttpURLConnection.HTTP_OK, "reason",
-                new ArrayList<retrofit.client.Header>(), mockValue);
-        InputStream inputStream = null;
-        try {
-            inputStream = new ByteArrayInputStream(responseStr.getBytes("UTF-8"));
-            when(mockValue.in()).thenReturn(inputStream);
-            callbackWrapper.success(new Result<>(mockResponse, mockResponse));
-        } finally {
-            CommonUtils.closeQuietly(inputStream);
-        }
+                                          Callback<OAuthResponse> authResponseCallback) throws IOException {
+        final Callback<ResponseBody> callbackWrapper = service.getCallbackWrapper(authResponseCallback);
+        final ResponseBody responseBody = ResponseBody.create(MediaType.parse("application/json"), responseStr);
+        final Response<ResponseBody> response = Response.success(responseBody);
+
+        callbackWrapper.success(new Result<>(responseBody, response));
     }
 
     @Test
@@ -291,18 +266,15 @@ public class OAuth1aServiceTest {
                 assertNotNull(exception);
             }
         };
-        final Callback<Response> callbackWrapper = service.getCallbackWrapper(callback);
-        final TypedInput mockValue = mock(TypedInput.class);
-        final Response mockResponse = new Response("url", HttpURLConnection.HTTP_OK, "reason",
-                new ArrayList<retrofit.client.Header>(), mockValue);
-        when(mockValue.in()).thenThrow(mock(IOException.class));
-        callbackWrapper.success(new Result<>(mockResponse, mockResponse));
+        final Callback<ResponseBody> callbackWrapper = service.getCallbackWrapper(callback);
+        final ResponseBody responseBody = ResponseBody.create(MediaType.parse("application/json"), "");
+        callbackWrapper.success(new Result<>(responseBody, Response.success(responseBody)));
     }
 
     @Test
     public void testCallbackWrapperFailure() {
         final Callback<OAuthResponse> authResponseCallback = mock(Callback.class);
-        final Callback<Response> callbackWrapper = service.getCallbackWrapper(authResponseCallback);
+        final Callback<ResponseBody> callbackWrapper = service.getCallbackWrapper(authResponseCallback);
         final TwitterException mockException = mock(TwitterException.class);
         callbackWrapper.failure(mockException);
         verify(authResponseCallback).failure(eq(mockException));
@@ -311,16 +283,16 @@ public class OAuth1aServiceTest {
     private static class MockOAuth1aService implements OAuth1aService.OAuthApi {
 
         @Override
-        public void getTempToken(@Header(AuthHeaders.HEADER_AUTHORIZATION) String auth,
-                @Body String dummy, Callback<Response> cb) {
-            // Does nothing
+        public Call<ResponseBody> getTempToken(@Header(OAuthConstants.HEADER_AUTHORIZATION) String auth) {
+            final ResponseBody responseBody = ResponseBody.create(MediaType.parse("application/json"), "");
+            return Calls.response(Response.success(responseBody));
         }
 
         @Override
-        public void getAccessToken(@Header(AuthHeaders.HEADER_AUTHORIZATION) String auth,
-                @Query(OAuthConstants.PARAM_VERIFIER) String verifier, @Body String dummy,
-                Callback<Response> cb) {
-            // Does nothing
+        public Call<ResponseBody> getAccessToken(@Header(OAuthConstants.HEADER_AUTHORIZATION) String auth,
+                @Query(OAuthConstants.PARAM_VERIFIER) String verifier) {
+            final ResponseBody responseBody = ResponseBody.create(MediaType.parse("application/json"), "");
+            return Calls.response(Response.success(responseBody));
         }
     }
 }

@@ -17,13 +17,13 @@
 
 package com.twitter.sdk.android.core.services;
 
-import com.twitter.sdk.android.core.Callback;
 import com.twitter.sdk.android.core.models.Tweet;
 
 import java.util.List;
 
-import retrofit.http.GET;
-import retrofit.http.Query;
+import retrofit2.Call;
+import retrofit2.http.GET;
+import retrofit2.http.Query;
 
 public interface ListService {
 
@@ -32,7 +32,7 @@ public interface ListService {
      * by default.
      * @param listId The numerical id of the list.
      * @param slug You can identify a list by its slug instead of its numerical id. If you decide to
-     *             do so, note that you’ll also have to specify the list owner using the owner_id or
+     *             do so, note that you'll also have to specify the list owner using the owner_id or
      *             owner_screen_name parameters.
      * @param ownerScreenName The screen name of the user who owns the list being requested by a
      *                        slug.
@@ -43,26 +43,25 @@ public interface ListService {
      *                since_id will be forced to the oldest ID available.
      * @param maxId Returns results with an ID less than (that is, older than) or equal to the
      *              specified ID.
-     * @param count Specifies the number of results to retrieve per “page.”
+     * @param count Specifies the number of results to retrieve per "page."
      * @param includeEntities Entities are ON by default in API 1.1, each Tweet includes a node
-     *                        called “entities”. This node offers a variety of metadata about the
+     *                        called "entities." This node offers a variety of metadata about the
      *                        Tweet in a discrete structure, including: user_mentions, urls, and
      *                        hashtags.
      * @param includeRetweets When set to either true, t or 1, the list timeline will contain native
      *                        retweets (if they exist) in addition to the standard stream of tweets.
      *                        The output format of retweeted tweets is identical to the
      *                        representation you see in home_timeline.
-     * @param cb The callback to invoke when the request completes.
      */
-    @GET("/1.1/lists/statuses.json")
-    void statuses(@Query("list_id") Long listId,
-                  @Query("slug") String slug,
-                  @Query("owner_screen_name") String ownerScreenName,
-                  @Query("owner_id") Long ownerId,
-                  @Query("since_id") Long sinceId,
-                  @Query("max_id") Long maxId,
-                  @Query("count") Integer count,
-                  @Query("include_entities") Boolean includeEntities,
-                  @Query("include_rts") Boolean includeRetweets,
-                  Callback<List<Tweet>> cb);
+    @GET("/1.1/lists/statuses.json?" +
+            "tweet_mode=extended&include_cards=true&cards_platform=TwitterKit-13")
+    Call<List<Tweet>> statuses(@Query("list_id") Long listId,
+                               @Query("slug") String slug,
+                               @Query("owner_screen_name") String ownerScreenName,
+                               @Query("owner_id") Long ownerId,
+                               @Query("since_id") Long sinceId,
+                               @Query("max_id") Long maxId,
+                               @Query("count") Integer count,
+                               @Query("include_entities") Boolean includeEntities,
+                               @Query("include_rts") Boolean includeRetweets);
 }

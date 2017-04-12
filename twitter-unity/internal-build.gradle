@@ -15,7 +15,6 @@
  *
  */
 
-apply plugin: 'android-sdk-manager'
 apply plugin: 'com.android.library'
 apply from: rootProject.qualityScript
 apply from: rootProject.deployScript
@@ -24,11 +23,6 @@ apply plugin: io.fabric.gradle.weaving.ArtifactSizePlugin
 apply plugin: io.fabric.gradle.weaving.FabricPropertiesPlugin
 apply plugin: io.fabric.gradle.weaving.DexMethodCountPlugin
 
-repositories {
-    mavenLocal()
-    maven { url 'https://maven.fabric.io/public' }
-}
-
 android {
     compileSdkVersion rootProject.compileSdkVersion
     buildToolsVersion rootProject.buildToolsVersion
@@ -36,7 +30,7 @@ android {
     defaultConfig {
         versionCode 1
         versionName version
-        minSdkVersion 9
+        minSdkVersion rootProject.minSdkVersion.twitter
         consumerProguardFiles 'proguard.txt'
     }
 
@@ -71,14 +65,8 @@ android {
     publishNonDefault true
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
-    }
-
-    // Forcibly add debug and the generated "R" files onto the test classpath
-    sourceSets {
-        test.java.srcDirs += "build/generated/source/r/debug"
-        test.java.srcDirs += "src/debug"
+        sourceCompatibility rootProject.sourceCompatibilityVersion
+        targetCompatibility rootProject.targetCompatibilityVersion
     }
 
     testOptions {
@@ -87,7 +75,6 @@ android {
 }
 
 ext.projectDependencies = [
-        ':sdk:fabric:fabric' : 'io.fabric.sdk.android:fabric:+@aar',
         ':sdk:twitter:twitter-core' : 'com.twitter.sdk.android:twitter-core:+@aar',
         ':sdk:twitter:tweet-composer' : 'com.twitter.sdk.android:tweet-composer:+@aar'
 ]

@@ -31,6 +31,7 @@ import android.media.MediaPlayer.OnInfoListener;
 import android.net.Uri;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
@@ -48,9 +49,7 @@ import android.view.SurfaceView;
  * play position, or selected tracks.  Applications should
  * save and restore these on their own in
  * {@link android.app.Activity#onSaveInstanceState} and
- * {@link android.app.Activity#onRestoreInstanceState}.<p>
- * Also note that the audio session id (from {@link #getAudioSessionId}) may
- * change from its previously returned value when the VideoView is restored.
+ * {@link android.app.Activity#onRestoreInstanceState}.
  */
 public class VideoView extends SurfaceView
         implements VideoControlView.MediaPlayerControl {
@@ -87,9 +86,6 @@ public class VideoView extends SurfaceView
     private OnErrorListener mOnErrorListener;
     private OnInfoListener mOnInfoListener;
     private int mSeekWhenPrepared;  // recording the seek position while preparing
-    private boolean mCanPause;
-    private boolean mCanSeekBack;
-    private boolean mCanSeekForward;
     private boolean mLooping;
 
     public VideoView(Context context) {
@@ -160,14 +156,9 @@ public class VideoView extends SurfaceView
                     height = width * mVideoHeight / mVideoWidth;
                 }
             }
-        } else {
-            // no size yet, just adopt the given spec sizes
         }
-        setMeasuredDimension(width, height);
-    }
 
-    public int resolveAdjustedSize(int desiredSize, int measureSpec) {
-        return getDefaultSize(desiredSize, measureSpec);
+        setMeasuredDimension(width, height);
     }
 
     private void initVideoView() {
@@ -177,6 +168,7 @@ public class VideoView extends SurfaceView
         getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         setFocusable(true);
         setFocusableInTouchMode(true);
+        setClickable(true);
         requestFocus();
         mCurrentState = STATE_IDLE;
         mTargetState = STATE_IDLE;
@@ -228,9 +220,9 @@ public class VideoView extends SurfaceView
             mMediaPlayer.setOnInfoListener(mInfoListener);
             mMediaPlayer.setOnBufferingUpdateListener(mBufferingUpdateListener);
             mCurrentBufferPercentage = 0;
+            mMediaPlayer.setLooping(mLooping);
             mMediaPlayer.setDataSource(getContext(), mUri);
             mMediaPlayer.setDisplay(mSurfaceHolder);
-            mMediaPlayer.setLooping(mLooping);
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mMediaPlayer.setScreenOnWhilePlaying(true);
             mMediaPlayer.prepareAsync();
@@ -244,7 +236,6 @@ public class VideoView extends SurfaceView
             mCurrentState = STATE_ERROR;
             mTargetState = STATE_ERROR;
             mErrorListener.onError(mMediaPlayer, MediaPlayer.MEDIA_ERROR_UNKNOWN, 0);
-            return;
         }
     }
 
@@ -278,7 +269,6 @@ public class VideoView extends SurfaceView
         public void onPrepared(MediaPlayer mp) {
             mCurrentState = STATE_PREPARED;
 
-            mCanPause = mCanSeekBack = mCanSeekForward = true;
             if (mOnPreparedListener != null) {
                 mOnPreparedListener.onPrepared(mMediaPlayer);
             }
@@ -367,6 +357,23 @@ public class VideoView extends SurfaceView
                 }
             };
 
+    private GestureDetector gestureDetector = new GestureDetector(getContext(),
+            new GestureDetector.SimpleOnGestureListener() {
+        @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            if (isInPlaybackState() && mMediaController != null) {
+                toggleMediaControlsVisiblity();
+            }
+            return false;
+        }
+    });
+
+    @Override
+    public boolean onTouchEvent(MotionEvent ev) {
+        final boolean retVal = gestureDetector.onTouchEvent(ev);
+        return retVal || super.onTouchEvent(ev);
+    }
+
     /**
      * Register a callback to be invoked when the media file
      * is loaded and ready to go.
@@ -453,22 +460,6 @@ public class VideoView extends SurfaceView
                 mTargetState = STATE_IDLE;
             }
         }
-    }
-
-    @Override
-    public boolean onTouchEvent(MotionEvent ev) {
-        if (isInPlaybackState() && mMediaController != null) {
-            toggleMediaControlsVisiblity();
-        }
-        return super.onTouchEvent(ev);
-    }
-
-    @Override
-    public boolean onTrackballEvent(MotionEvent ev) {
-        if (isInPlaybackState() && mMediaController != null) {
-            toggleMediaControlsVisiblity();
-        }
-        return super.onTrackballEvent(ev);
     }
 
     @Override
@@ -582,30 +573,5 @@ public class VideoView extends SurfaceView
                 mCurrentState != STATE_ERROR &&
                 mCurrentState != STATE_IDLE &&
                 mCurrentState != STATE_PREPARING);
-    }
-
-    @Override
-    public boolean canPause() {
-        return mCanPause;
-    }
-
-    @Override
-    public boolean canSeekBackward() {
-        return mCanSeekBack;
-    }
-
-    @Override
-    public boolean canSeekForward() {
-        return mCanSeekForward;
-    }
-
-    @Override
-    public int getAudioSessionId() {
-        if (mAudioSession == 0) {
-            MediaPlayer foo = new MediaPlayer();
-            mAudioSession = foo.getAudioSessionId();
-            foo.release();
-        }
-        return mAudioSession;
     }
 }

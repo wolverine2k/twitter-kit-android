@@ -17,16 +17,15 @@
 
 package com.twitter.sdk.android.tweetui;
 
-import android.annotation.TargetApi;
 import android.content.Context;
-import android.os.Build;
 import android.util.AttributeSet;
-import android.widget.ImageView;
 
 import com.twitter.sdk.android.core.models.Tweet;
 
 public class TweetView extends BaseTweetView {
     private static final String VIEW_TYPE_NAME = "default";
+    private static final double SQUARE_ASPECT_RATIO = 1.0;
+    private static final double DEFAULT_ASPECT_RATIO_MEDIA_CONTAINER = 3.0 / 2.0;
 
     public TweetView(Context context, Tweet tweet) {
         super(context, tweet);
@@ -44,7 +43,6 @@ public class TweetView extends BaseTweetView {
         super(context, attrs);
     }
 
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public TweetView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
     }
@@ -67,14 +65,30 @@ public class TweetView extends BaseTweetView {
     }
 
     /**
+     * Returns the desired aspect ratio for Tweet that contains photo entities
+     *
+     * @param photoCount total count of photo entities
+     * @return the target image and bitmap width to height aspect ratio
+     */
+    @Override
+    protected double getAspectRatioForPhotoEntity(int photoCount) {
+        if (photoCount == 4) {
+            return SQUARE_ASPECT_RATIO;
+        } else {
+            return DEFAULT_ASPECT_RATIO_MEDIA_CONTAINER;
+        }
+    }
+
+    /**
      * Sets the verified check if the User is verified. If the User is not verified or if the
-     * verification data is unavailable, sets the check visibility to gone.
+     * verification data is unavailable, remove the check.
      */
     private void setVerifiedCheck(Tweet tweet) {
         if (tweet != null && tweet.user != null && tweet.user.verified) {
-            verifiedCheckView.setVisibility(ImageView.VISIBLE);
+            fullNameView.setCompoundDrawablesWithIntrinsicBounds(0, 0,
+                    R.drawable.tw__ic_tweet_verified, 0);
         } else {
-            verifiedCheckView.setVisibility(ImageView.GONE);
+            fullNameView.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0);
         }
     }
 

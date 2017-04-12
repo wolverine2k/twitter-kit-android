@@ -21,7 +21,7 @@ import com.twitter.sdk.android.core.internal.scribe.EventNamespace;
 import com.twitter.sdk.android.core.internal.scribe.SyndicatedSdkImpressionEvent;
 import com.twitter.sdk.android.core.internal.scribe.SyndicationClientEvent;
 
-public class ScribeConstants {
+final class ScribeConstants {
     private ScribeConstants() {}
 
     // tfw client event specific names
@@ -31,6 +31,7 @@ public class ScribeConstants {
 
     // general names
     static final String SCRIBE_IMPRESSION_ACTION = "impression";
+    static final String SCRIBE_FILTER_ACTION = "filter";
     static final String SCRIBE_INITIAL_ELEMENT = "initial";
     static final String SCRIBE_TIMELINE_SECTION = "timeline";
     static final String SCRIBE_TIMELINE_PAGE = "timeline";
@@ -55,6 +56,17 @@ public class ScribeConstants {
                 .setComponent(timelineType)
                 .setElement(SCRIBE_INITIAL_ELEMENT)
                 .setAction(SCRIBE_IMPRESSION_ACTION)
+                .builder();
+    }
+
+    static EventNamespace getTfwClientFilterTimelineNamespace(String timelineType) {
+        return new EventNamespace.Builder()
+                .setClient(SyndicationClientEvent.CLIENT_NAME)
+                .setPage(TFW_CLIENT_EVENT_PAGE)
+                .setSection(SCRIBE_TIMELINE_SECTION)
+                .setComponent(timelineType)
+                .setElement(SCRIBE_INITIAL_ELEMENT)
+                .setAction(SCRIBE_FILTER_ACTION)
                 .builder();
     }
 }

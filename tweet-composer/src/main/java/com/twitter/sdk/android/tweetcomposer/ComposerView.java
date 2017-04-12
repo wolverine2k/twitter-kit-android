@@ -17,10 +17,8 @@
 
 package com.twitter.sdk.android.tweetcomposer;
 
-import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.drawable.ColorDrawable;
-import android.os.Build;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
@@ -35,8 +33,10 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 import com.twitter.sdk.android.core.internal.UserUtils;
-import com.twitter.sdk.android.core.internal.util.ObservableScrollView;
+import com.twitter.sdk.android.tweetcomposer.internal.util.ObservableScrollView;
 import com.twitter.sdk.android.core.models.User;
+
+import java.util.Locale;
 
 public class ComposerView extends LinearLayout {
     ImageView avatarView;
@@ -63,7 +63,6 @@ public class ComposerView extends LinearLayout {
         init(context);
     }
 
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public ComposerView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         init(context);
@@ -167,12 +166,8 @@ public class ComposerView extends LinearLayout {
         tweetEditView.setText(text);
     }
 
-    void setCursorAtEnd() {
-        tweetEditView.setSelection(getTweetText().length());
-    }
-
     void setCharCount(int remainingCount) {
-        charCountView.setText(Integer.toString(remainingCount));
+        charCountView.setText(String.format(Locale.getDefault(), "%d", remainingCount));
     }
 
     void setCharCountTextStyle(int textStyleResId) {

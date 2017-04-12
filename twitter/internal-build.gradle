@@ -15,17 +15,12 @@
  *
  */
 
-apply plugin: 'android-sdk-manager'
 apply plugin: 'com.android.library'
 apply from: rootProject.qualityScript
 apply from: rootProject.deployScript
 apply plugin: io.fabric.gradle.weaving.ArtifactSizePlugin
 apply plugin: io.fabric.gradle.weaving.FabricPropertiesPlugin
 apply plugin: io.fabric.gradle.release.FabricKitReleasePlugin
-
-repositories {
-    maven { url 'https://maven.fabric.io/public' }
-}
 
 android {
     compileSdkVersion rootProject.compileSdkVersion
@@ -34,7 +29,7 @@ android {
     defaultConfig {
         versionCode 1
         versionName version
-        minSdkVersion 9
+        minSdkVersion rootProject.minSdkVersion.twitter
     }
 
     lintOptions {
@@ -63,8 +58,8 @@ android {
     publishNonDefault true
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
+        sourceCompatibility rootProject.sourceCompatibilityVersion
+        targetCompatibility rootProject.targetCompatibilityVersion
     }
 
     testOptions {
@@ -75,9 +70,7 @@ android {
 ext.projectDependencies = [
         ':sdk:twitter:twitter-core' : 'com.twitter.sdk.android:twitter-core:+@aar',
         ':sdk:twitter:tweet-ui' : 'com.twitter.sdk.android:tweet-ui:+@aar',
-        ':sdk:twitter:tweet-composer' : 'com.twitter.sdk.android:tweet-composer:+@aar',
-        ':sdk:digits:digits' : 'com.digits.sdk.android:digits:+@aar',
-        ':sdk:fabric:fabric' : 'io.fabric.sdk.android:fabric:+@aar'
+        ':sdk:twitter:tweet-composer' : 'com.twitter.sdk.android:tweet-composer:+@aar'
 ]
 
 dependencies {
@@ -86,10 +79,9 @@ dependencies {
         releaseCompile projectOrBinary(path: path, configuration: 'release', binary: binary)
     }
 
-    testCompile rootProject.mockito
-    testCompile rootProject.junit
-    testCompile rootProject.mavenAntTasks
-    testCompile(rootProject.robolectric) {
+    testCompile dependency.mockito
+    testCompile dependency.junit
+    testCompile(dependency.robolectric) {
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
@@ -101,7 +93,11 @@ fabricKitRelease {
     name = "${project.pom_group_id}.${project.pom_artifact_id}"
     description = "Integrate Log in with Twitter, embed Tweets, and leverage the Twitter API."
     version = project.version
-    artifactUrl = "https://maven.fabric.io/repo/com/twitter/sdk/android/twitter/${project.version}/twitter-${project.version}.pom"
+    artifactUrl {
+        repository = "https://maven.fabric.io/public"
+        groupId = project.pom_group_id
+        artifactId = project.pom_artifact_id
+    }
     releaseNotesUrl = "https://s3.amazonaws.com/kits-crashlytics-com/android/com/twitter/sdk/android/twitter/${project.version}/twitter-${project.version}-release-notes.html"
     learnMoreUrl = "http://docs.fabric.io/android/twitter/index.html"
     price {
@@ -115,7 +111,7 @@ fabricKitRelease {
     minBuild = 0
     maxBuild = Integer.MAX_VALUE
     minPlatformVersion {
-        apiVersion "8"
+        apiVersion "14"
     }
     docsUrl = "https://docs.fabric.io/javadocs/twitter-core/${project.version}/index.html"
     twitterHandle = "@twitterdev"

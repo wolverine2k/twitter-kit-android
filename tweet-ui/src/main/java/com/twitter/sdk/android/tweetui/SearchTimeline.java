@@ -19,34 +19,44 @@ package com.twitter.sdk.android.tweetui;
 
 import com.twitter.sdk.android.core.Callback;
 import com.twitter.sdk.android.core.Result;
-import com.twitter.sdk.android.core.TwitterApiClient;
+import com.twitter.sdk.android.core.TwitterCore;
 import com.twitter.sdk.android.core.TwitterException;
-import com.twitter.sdk.android.core.GuestCallback;
 import com.twitter.sdk.android.core.models.Search;
 import com.twitter.sdk.android.core.models.Tweet;
+import com.twitter.sdk.android.core.services.params.Geocode;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
-import io.fabric.sdk.android.Fabric;
+import retrofit2.Call;
 
 /**
  * SearchTimeline provides a timeline of tweets from the search/tweets API source.
  */
 public class SearchTimeline extends BaseTimeline implements Timeline<Tweet> {
     static final String FILTER_RETWEETS = " -filter:retweets";   // leading whitespace intentional
-    static final String RESULT_TYPE = "filtered";
     private static final String SCRIBE_SECTION = "search";
+    private static final SimpleDateFormat QUERY_DATE =
+            new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH);
 
     final String query;
+    final Geocode geocode;
+    final String resultType;
     final String languageCode;
     final Integer maxItemsPerRequest;
+    final String untilDate;
 
-    SearchTimeline(TweetUi tweetUi, String query, String languageCode, Integer maxItemsPerRequest) {
-        super(tweetUi);
+    SearchTimeline(String query, Geocode geocode, String resultType, String languageCode,
+            Integer maxItemsPerRequest, String untilDate) {
         this.languageCode = languageCode;
         this.maxItemsPerRequest = maxItemsPerRequest;
+        this.untilDate = untilDate;
+        this.resultType = resultType;
         // if the query is non-null append the filter Retweets modifier
         this.query = query == null ? null : query + FILTER_RETWEETS;
+        this.geocode = geocode;
     }
 
     /**
@@ -57,7 +67,7 @@ public class SearchTimeline extends BaseTimeline implements Timeline<Tweet> {
      */
     @Override
     public void next(Long sinceId, Callback<TimelineResult<Tweet>> cb) {
-        addRequest(createSearchRequest(sinceId, null, cb));
+        createSearchRequest(sinceId, null).enqueue(new SearchCallback(cb));
     }
 
     /**
@@ -70,7 +80,7 @@ public class SearchTimeline extends BaseTimeline implements Timeline<Tweet> {
         // api quirk: search api provides results that are inclusive of the maxId iff
         // FILTER_RETWEETS is added to the query (which we currently always add), decrement the
         // maxId to get exclusive results
-        addRequest(createSearchRequest(null, decrementMaxId(maxId), cb));
+        createSearchRequest(null, decrementMaxId(maxId)).enqueue(new SearchCallback(cb));
     }
 
     @Override
@@ -78,23 +88,17 @@ public class SearchTimeline extends BaseTimeline implements Timeline<Tweet> {
         return SCRIBE_SECTION;
     }
 
-    Callback<TwitterApiClient> createSearchRequest(final Long sinceId, final Long maxId,
-            final Callback<TimelineResult<Tweet>> cb) {
-        return new LoggingCallback<TwitterApiClient>(cb, Fabric.getLogger()) {
-            @Override
-            public void success(Result<TwitterApiClient> result) {
-                result.data.getSearchService().tweets(query, null, languageCode, null, RESULT_TYPE,
-                        maxItemsPerRequest, null, sinceId, maxId, true,
-                        new GuestCallback<>(new SearchCallback(cb)));
-            }
-        };
+    Call<Search> createSearchRequest(final Long sinceId, final Long maxId) {
+        return TwitterCore.getInstance().getApiClient().getSearchService().tweets(query, geocode,
+                languageCode, null, resultType, maxItemsPerRequest, untilDate, sinceId, maxId,
+                true);
     }
 
     /**
      * Wrapper callback which unpacks a Search API result into a TimelineResult (cursor and items).
      */
     class SearchCallback extends Callback<Search> {
-        protected final Callback<TimelineResult<Tweet>> cb;
+        final Callback<TimelineResult<Tweet>> cb;
 
         /**
          * Constructs a SearchCallback
@@ -110,7 +114,7 @@ public class SearchTimeline extends BaseTimeline implements Timeline<Tweet> {
             final TimelineResult<Tweet> timelineResult
                     = new TimelineResult<>(new TimelineCursor(tweets), tweets);
             if (cb != null) {
-                cb.success(timelineResult, result.response);
+                cb.success(new Result<>(timelineResult, result.response));
             }
         }
 
@@ -122,33 +126,40 @@ public class SearchTimeline extends BaseTimeline implements Timeline<Tweet> {
         }
     }
 
+    public enum ResultType {
+        RECENT("recent"),
+        POPULAR("popular"),
+        MIXED("mixed"),
+        FILTERED("filtered");
+
+        final String type;
+
+        ResultType(String type) {
+            this.type = type;
+        }
+    }
+
     /**
      * SearchTimeline Builder
      */
     public static class Builder {
-        private TweetUi tweetUi;
         private String query;
         private String lang;
+        private String resultType = ResultType.FILTERED.type;
         private Integer maxItemsPerRequest = 30;
+        private String untilDate;
+        private Geocode geocode;
 
         /**
          * Constructs a Builder.
          */
-        public Builder() {
-            this(TweetUi.getInstance());
-        }
+        public Builder() {}
 
         /**
-         * Constructs a Builder.
-         *
-         * @param tweetUi A TweetUi instance.
+         * @deprecated use {@link Builder#Builder()} instead
          */
-        public Builder(TweetUi tweetUi) {
-            if (tweetUi == null) {
-                throw new IllegalArgumentException("TweetUi instance must not be null");
-            }
-            this.tweetUi = tweetUi;
-        }
+        @Deprecated
+        public Builder(TweetUi tweetUi) {}
 
         /**
          * Sets the query for the SearchTimeline.
@@ -159,6 +170,27 @@ public class SearchTimeline extends BaseTimeline implements Timeline<Tweet> {
             this.query = query;
             return this;
         }
+
+        /**
+         * Sets the geocode for the SearchTimeline.
+         * @param geocode Restricts query to a given geolocation
+         */
+        public Builder geocode(Geocode geocode) {
+            this.geocode = geocode;
+            return this;
+        }
+
+        /**
+         *  The result_type parameter allows one to choose if the result set will be represented by
+         *  recent or popular Tweets, or a mix of both.
+         *
+         * @param resultType possible options include recent, popular, mixed, or filtered.
+         */
+        public Builder resultType(ResultType resultType) {
+            this.resultType = resultType.type;
+            return this;
+        }
+
 
         /**
          * Sets the languageCode for the SearchTimeline.
@@ -181,6 +213,17 @@ public class SearchTimeline extends BaseTimeline implements Timeline<Tweet> {
         }
 
         /**
+         * Returns tweets generated before the given date. Date should be formatted as YYYY-MM-DD.
+         * Keep in mind that the search index may not go back as far as the date you specify here.
+         *
+         * @param date Date before which the tweets were created.
+         */
+        public Builder untilDate(Date date) {
+            untilDate = QUERY_DATE.format(date);
+            return this;
+        }
+
+        /**
          * Builds a SearchTimeline from the Builder parameters.
          * @return a SearchTimeline.
          * @throws java.lang.IllegalStateException if query is not set (is null).
@@ -189,7 +232,8 @@ public class SearchTimeline extends BaseTimeline implements Timeline<Tweet> {
             if (query == null) {
                 throw new IllegalStateException("query must not be null");
             }
-            return new SearchTimeline(tweetUi, query, lang, maxItemsPerRequest);
+            return new SearchTimeline(query, geocode, resultType, lang, maxItemsPerRequest,
+                    untilDate);
         }
     }
 }

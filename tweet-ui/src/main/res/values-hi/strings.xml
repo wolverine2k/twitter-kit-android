@@ -29,4 +29,5 @@
     <string name="tw__share_subject_format">%1$s (\@%2$s) से ट्वीट</string>
     <string name="tw__share_tweet">ट्वीट साझा करें</string>
     <string name="tw__tweet_content_description">%1$s. %2$s. %3$s.</string>
+    <string name="tw__tweet_media">ट्वीट मीडिया</string>
 </resources>

@@ -18,7 +18,6 @@
 package com.twitter.sdk.android.tweetcomposer;
 
 import android.net.Uri;
-import android.test.AndroidTestCase;
 import android.webkit.MimeTypeMap;
 
 import org.junit.Before;
@@ -26,19 +25,23 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.annotation.Config;
+import org.robolectric.internal.ShadowExtractor;
 import org.robolectric.shadows.ShadowMimeTypeMap;
-import static org.robolectric.Shadows.shadowOf;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
 @RunWith(RobolectricGradleTestRunner.class)
 @Config(constants = BuildConfig.class, sdk = 21)
-public class FileUtilsTest extends AndroidTestCase {
+public class FileUtilsTest {
     ShadowMimeTypeMap mimeTypeMap;
 
     @Before
     public void setUp() {
-        final ShadowMimeTypeMap mimeTypeMap = shadowOf(MimeTypeMap.getSingleton());
+        final ShadowMimeTypeMap mimeTypeMap = (ShadowMimeTypeMap) ShadowExtractor
+                .extract(MimeTypeMap.getSingleton());
         mimeTypeMap.addExtensionMimeTypMapping("jpg", "image/jpeg");
         mimeTypeMap.addExtensionMimeTypMapping("jpeg", "image/jpeg");
         mimeTypeMap.addExtensionMimeTypMapping("png", "image/png");

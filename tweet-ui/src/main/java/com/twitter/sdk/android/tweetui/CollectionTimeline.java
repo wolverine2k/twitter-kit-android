@@ -18,22 +18,20 @@
 package com.twitter.sdk.android.tweetui;
 
 import com.twitter.sdk.android.core.Callback;
-import com.twitter.sdk.android.core.internal.TwitterCollection;
+import com.twitter.sdk.android.core.TwitterCore;
+import com.twitter.sdk.android.core.models.TwitterCollection;
 import com.twitter.sdk.android.core.Result;
-import com.twitter.sdk.android.core.TwitterApiClient;
 import com.twitter.sdk.android.core.TwitterException;
 import com.twitter.sdk.android.core.models.Tweet;
 import com.twitter.sdk.android.core.models.TweetBuilder;
 import com.twitter.sdk.android.core.models.User;
-import com.twitter.sdk.android.core.GuestCallback;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.fabric.sdk.android.Fabric;
+import retrofit2.Call;
 
 /**
  * CollectionTimeline provides a timeline of tweets from the collections/collection API source.
@@ -45,8 +43,7 @@ public class CollectionTimeline extends BaseTimeline implements Timeline<Tweet> 
     final String collectionIdentifier;
     final Integer maxItemsPerRequest;
 
-    CollectionTimeline(TweetUi tweetUi, Long collectionId, Integer maxItemsPerRequest) {
-        super(tweetUi);
+    CollectionTimeline(Long collectionId, Integer maxItemsPerRequest) {
         // prefix the collection id with the collection prefix
         if (collectionId == null) {
             this.collectionIdentifier = null;
@@ -64,7 +61,7 @@ public class CollectionTimeline extends BaseTimeline implements Timeline<Tweet> 
      */
     @Override
     public void next(Long minPosition, Callback<TimelineResult<Tweet>> cb) {
-        addRequest(createCollectionRequest(minPosition, null, cb));
+        createCollectionRequest(minPosition, null).enqueue(new CollectionCallback(cb));
     }
 
     /**
@@ -74,7 +71,7 @@ public class CollectionTimeline extends BaseTimeline implements Timeline<Tweet> 
      */
     @Override
     public void previous(Long maxPosition, Callback<TimelineResult<Tweet>> cb) {
-        addRequest(createCollectionRequest(null, maxPosition, cb));
+        createCollectionRequest(null, maxPosition).enqueue(new CollectionCallback(cb));
     }
 
     @Override
@@ -82,16 +79,10 @@ public class CollectionTimeline extends BaseTimeline implements Timeline<Tweet> 
         return SCRIBE_SECTION;
     }
 
-    Callback<TwitterApiClient> createCollectionRequest(final Long minPosition,
-        final Long maxPosition, final Callback<TimelineResult<Tweet>> cb) {
-        return new LoggingCallback<TwitterApiClient>(cb, Fabric.getLogger()) {
-            @Override
-            public void success(Result<TwitterApiClient> result) {
-                result.data.getCollectionService().collection(collectionIdentifier,
-                        maxItemsPerRequest, maxPosition, minPosition,
-                        new GuestCallback<>(new CollectionCallback(cb)));
-            }
-        };
+    Call<TwitterCollection> createCollectionRequest(final Long minPosition,
+            final Long maxPosition) {
+        return TwitterCore.getInstance().getApiClient().getCollectionService()
+                .collection(collectionIdentifier, maxItemsPerRequest, maxPosition, minPosition);
     }
 
 
@@ -99,7 +90,7 @@ public class CollectionTimeline extends BaseTimeline implements Timeline<Tweet> 
      * Wrapper callback which unpacks a TwitterCollection into a TimelineResult (cursor and items).
      */
     class CollectionCallback extends Callback<TwitterCollection> {
-        private final Callback<TimelineResult<Tweet>> cb;
+        final Callback<TimelineResult<Tweet>> cb;
 
         /**
          * Constructs a CollectionCallback
@@ -120,7 +111,7 @@ public class CollectionTimeline extends BaseTimeline implements Timeline<Tweet> 
                 timelineResult = new TimelineResult<>(null, Collections.<Tweet>emptyList());
             }
             if (cb != null) {
-                cb.success(timelineResult, result.response);
+                cb.success(new Result(timelineResult, result.response));
             }
         }
 
@@ -141,21 +132,28 @@ public class CollectionTimeline extends BaseTimeline implements Timeline<Tweet> 
             return Collections.emptyList();
         }
         final List<Tweet> tweets = new ArrayList<>();
-        final Map<Long, Tweet> tweetMap = new HashMap<>();
-        for (Tweet trimmedTweet: collection.contents.tweetMap.values()) {
-            // read user id from the trimmed Tweet
-            final Long userId = trimmedTweet.user.id;
-            // lookup User in the collection response's UserMap
-            final User user = collection.contents.userMap.get(userId);
-            // build the Tweet with the hydrated User
-            final Tweet tweet = new TweetBuilder().copy(trimmedTweet).setUser(user).build();
-            tweetMap.put(tweet.id, tweet);
-        }
         for (TwitterCollection.TimelineItem item: collection.metadata.timelineItems) {
-            final Tweet tweet = tweetMap.get(item.tweetItem.id);
+            final Tweet trimmedTweet =  collection.contents.tweetMap.get(item.tweetItem.id);
+            final Tweet tweet = mapTweetToUsers(trimmedTweet, collection.contents.userMap);
             tweets.add(tweet);
         }
         return tweets;
+    }
+
+    static Tweet mapTweetToUsers(Tweet trimmedTweet, Map<Long, User> userMap) {
+        // read user id from the trimmed Tweet
+        final Long userId = trimmedTweet.user.id;
+        // lookup User in the collection response's UserMap
+        final User user = userMap.get(userId);
+        // build the Tweet with the User
+        final TweetBuilder builder = new TweetBuilder().copy(trimmedTweet).setUser(user);
+        // Repeat process for any quote tweets
+        if (trimmedTweet.quotedStatus != null) {
+            final Tweet quoteStatus = mapTweetToUsers(trimmedTweet.quotedStatus, userMap);
+            builder.setQuotedStatus(quoteStatus);
+        }
+
+        return builder.build();
     }
 
     static TimelineCursor getTimelineCursor(TwitterCollection twitterCollection) {
@@ -172,26 +170,19 @@ public class CollectionTimeline extends BaseTimeline implements Timeline<Tweet> 
      * CollectionTimeline Builder.
      */
     public static class Builder {
-        private final TweetUi tweetUi;
         private Long collectionId;
         private Integer maxItemsPerRequest = 30;
 
         /**
          * Constructs a Builder.
          */
-        public Builder() {
-            this(TweetUi.getInstance());
-        }
+        public Builder() {}
 
         /**
-         * Constructs a Builder.
+         * @deprecated use {@link Builder#Builder()} instead
          */
-        public Builder(TweetUi tweetUi) {
-            if (tweetUi == null) {
-                throw new IllegalArgumentException("TweetUi instance must not be null");
-            }
-            this.tweetUi = tweetUi;
-        }
+        @Deprecated
+        public Builder(TweetUi tweetUi) {}
 
         /**
          * Sets the id for the CollectionTimeline.
@@ -221,7 +212,7 @@ public class CollectionTimeline extends BaseTimeline implements Timeline<Tweet> 
             if (collectionId == null) {
                 throw new IllegalStateException("collection id must not be null");
             }
-            return new CollectionTimeline(tweetUi, collectionId, maxItemsPerRequest);
+            return new CollectionTimeline(collectionId, maxItemsPerRequest);
         }
     }
 }

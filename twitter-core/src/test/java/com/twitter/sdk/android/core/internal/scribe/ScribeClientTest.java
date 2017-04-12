@@ -24,6 +24,9 @@ import io.fabric.sdk.android.services.events.DisabledEventsStrategy;
 import io.fabric.sdk.android.services.events.EventsStrategy;
 
 import com.twitter.sdk.android.core.BuildConfig;
+import com.twitter.sdk.android.core.GuestSession;
+import com.twitter.sdk.android.core.GuestSessionProvider;
+import com.twitter.sdk.android.core.SessionManager;
 import com.twitter.sdk.android.core.TwitterAuthConfig;
 
 import org.junit.Before;
@@ -34,7 +37,6 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -64,8 +66,9 @@ public class ScribeClientTest {
 
         scribeClient = new ScribeClient(kitStub, mock(ScheduledExecutorService.class),
                 mock(ScribeConfig.class), mock(ScribeEvent.Transform.class),
-                mock(TwitterAuthConfig.class), mock(List.class),
-                mock(SSLSocketFactory.class), mock(IdManager.class));
+                mock(TwitterAuthConfig.class), mock(SessionManager.class),
+                mock(GuestSessionProvider.class), mock(SSLSocketFactory.class),
+                mock(IdManager.class));
     }
 
     @Test
@@ -73,8 +76,8 @@ public class ScribeClientTest {
         final ScribeHandler mockHandler = mock(ScribeHandler.class);
         final ScribeEvent mockScribeEvent = mock(ScribeEvent.class);
 
-        scribeClient.scribeHandlers.put(ScribeConstants.LOGGED_OUT_USER_ID, mockHandler);
-        scribeClient.scribe(mockScribeEvent, ScribeConstants.LOGGED_OUT_USER_ID);
+        scribeClient.scribeHandlers.put(GuestSession.LOGGED_OUT_USER_ID, mockHandler);
+        scribeClient.scribe(mockScribeEvent, GuestSession.LOGGED_OUT_USER_ID);
 
         verify(mockHandler).scribe(mockScribeEvent);
     }
@@ -84,8 +87,8 @@ public class ScribeClientTest {
         final ScribeHandler mockHandler = mock(ScribeHandler.class);
         final ScribeEvent mockScribeEvent = mock(ScribeEvent.class);
 
-        scribeClient.scribeHandlers.put(ScribeConstants.LOGGED_OUT_USER_ID, mockHandler);
-        scribeClient.scribeAndFlush(mockScribeEvent, ScribeConstants.LOGGED_OUT_USER_ID);
+        scribeClient.scribeHandlers.put(GuestSession.LOGGED_OUT_USER_ID, mockHandler);
+        scribeClient.scribeAndFlush(mockScribeEvent, GuestSession.LOGGED_OUT_USER_ID);
 
         verify(mockHandler).scribeAndFlush(mockScribeEvent);
     }
@@ -93,12 +96,12 @@ public class ScribeClientTest {
     @Test
     public void testGetScribeHandler() throws IOException {
         final ScribeHandler loggedOutScribeHandler
-                = scribeClient.getScribeHandler(ScribeConstants.LOGGED_OUT_USER_ID);
+                = scribeClient.getScribeHandler(GuestSession.LOGGED_OUT_USER_ID);
         assertNotNull(loggedOutScribeHandler);
         // Verify that asking for a scribe handler for the same owner id results in the same one
         // being returned.
         assertEquals(loggedOutScribeHandler,
-                scribeClient.getScribeHandler(ScribeConstants.LOGGED_OUT_USER_ID));
+                scribeClient.getScribeHandler(GuestSession.LOGGED_OUT_USER_ID));
 
         // Verify that different scribe handlers are returned for the different user ids.
         final ScribeHandler testUserScribeHandler
@@ -114,10 +117,11 @@ public class ScribeClientTest {
                 ScribeConfig.DEFAULT_SEND_INTERVAL_SECONDS);
         scribeClient = new ScribeClient(mock(Kit.class), mock(ScheduledExecutorService.class),
                 config, mock(ScribeEvent.Transform.class), mock(TwitterAuthConfig.class),
-                mock(List.class), mock(SSLSocketFactory.class), mock(IdManager.class));
+                mock(SessionManager.class), mock(GuestSessionProvider.class),
+                mock(SSLSocketFactory.class), mock(IdManager.class));
 
         final EventsStrategy<ScribeEvent> scribeStrategy
-                = scribeClient.getScribeStrategy(ScribeConstants.LOGGED_OUT_USER_ID, null);
+                = scribeClient.getScribeStrategy(GuestSession.LOGGED_OUT_USER_ID, null);
         assertTrue(scribeStrategy instanceof EnabledScribeStrategy);
     }
 
@@ -128,17 +132,18 @@ public class ScribeClientTest {
                 ScribeConfig.DEFAULT_SEND_INTERVAL_SECONDS);
         scribeClient = new ScribeClient(mock(Kit.class), mock(ScheduledExecutorService.class),
                 config, mock(ScribeEvent.Transform.class), mock(TwitterAuthConfig.class),
-                mock(List.class), mock(SSLSocketFactory.class), mock(IdManager.class));
+                mock(SessionManager.class), mock(GuestSessionProvider.class),
+                mock(SSLSocketFactory.class), mock(IdManager.class));
 
         final EventsStrategy<ScribeEvent> scribeStrategy
-                = scribeClient.getScribeStrategy(ScribeConstants.LOGGED_OUT_USER_ID, null);
+                = scribeClient.getScribeStrategy(GuestSession.LOGGED_OUT_USER_ID, null);
         assertTrue(scribeStrategy instanceof DisabledEventsStrategy);
     }
 
     @Test
     public void testGetWorkingFileNameForOwner() {
-        assertTrue(scribeClient.getWorkingFileNameForOwner(ScribeConstants.LOGGED_OUT_USER_ID)
-                .startsWith(Long.toString(ScribeConstants.LOGGED_OUT_USER_ID)));
+        assertTrue(scribeClient.getWorkingFileNameForOwner(GuestSession.LOGGED_OUT_USER_ID)
+                .startsWith(Long.toString(GuestSession.LOGGED_OUT_USER_ID)));
 
         assertTrue(scribeClient.getWorkingFileNameForOwner(TEST_USER_ID)
                 .startsWith(Long.toString(TEST_USER_ID)));
@@ -146,8 +151,8 @@ public class ScribeClientTest {
 
     @Test
     public void testGetStorageDirForOwner() {
-        assertTrue(scribeClient.getStorageDirForOwner(ScribeConstants.LOGGED_OUT_USER_ID)
-                .startsWith(Long.toString(ScribeConstants.LOGGED_OUT_USER_ID)));
+        assertTrue(scribeClient.getStorageDirForOwner(GuestSession.LOGGED_OUT_USER_ID)
+                .startsWith(Long.toString(GuestSession.LOGGED_OUT_USER_ID)));
 
         assertTrue(scribeClient.getStorageDirForOwner(TEST_USER_ID)
                 .startsWith(Long.toString(TEST_USER_ID)));

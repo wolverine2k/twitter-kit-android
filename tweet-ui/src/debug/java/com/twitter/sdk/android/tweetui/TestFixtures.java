@@ -17,6 +17,10 @@
 
 package com.twitter.sdk.android.tweetui;
 
+import com.twitter.sdk.android.core.internal.VineCardUtils;
+import com.twitter.sdk.android.core.models.BindingValues;
+import com.twitter.sdk.android.core.models.Card;
+import com.twitter.sdk.android.core.models.ImageValue;
 import com.twitter.sdk.android.core.models.MediaEntity;
 import com.twitter.sdk.android.core.models.Tweet;
 import com.twitter.sdk.android.core.models.TweetBuilder;
@@ -24,11 +28,15 @@ import com.twitter.sdk.android.core.models.TweetEntities;
 import com.twitter.sdk.android.core.models.UrlEntity;
 import com.twitter.sdk.android.core.models.User;
 import com.twitter.sdk.android.core.models.UserBuilder;
+import com.twitter.sdk.android.core.models.UserValue;
 import com.twitter.sdk.android.core.models.VideoInfo;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class TestFixtures {
     public static final String CONSUMER_KEY = "consumer_key";
@@ -72,20 +80,28 @@ public final class TestFixtures {
     public static final String INVALID_TIMESTAMP_INPUT = "Dec 12, 2013";
 
     public static final String TEST_PHOTO_URL = "https://pbs.twimg.com/media/someimage.jpg";
+    public static final String TEST_URL = "https://twitter.com/";
+    public static final String TEST_STATUS_WITH_LINK = "A test Tweet status message. " + TEST_URL;
 
     public static final String TEST_CONTENT_DESCRIPTION
             = "Alfred Verbose Named. A test Tweet status message.. Jun 6, 2012.";
 
-    public static final String TEST_PERMALINK_ONE = "https://twitter.com/longestusername/status/1";
-    public static final String TEST_PERMALINK_TWO = "https://twitter.com/longestusername/status/2";
+    public static final String TEST_PERMALINK_ONE =
+            "https://twitter.com/longestusername/status/1?ref_src=twsrc%5Etwitterkit";
+    public static final String TEST_PERMALINK_TWO =
+            "https://twitter.com/longestusername/status/2?ref_src=twsrc%5Etwitterkit";
     public static final String TEST_PERMALINK_UNKNOWN_USER
-            = "https://twitter.com/twitter_unknown/status/1";
+            = "https://twitter.com/twitter_unknown/status/1?ref_src=twsrc%5Etwitterkit";
 
     public static final Tweet TEST_TWEET = createTweet(1L, TEST_USER, TEST_STATUS, TEST_TIMESTAMP,
+            false);
+    public static final Tweet TEST_TWEET_LINK = createTweet(1L, TEST_USER, TEST_STATUS_WITH_LINK, TEST_TIMESTAMP,
             false);
     public static final Tweet TEST_FAVORITED_TWEET = createTweet(1L, TEST_USER, TEST_STATUS,
             TEST_TIMESTAMP, true);
     public static final Tweet TEST_PHOTO_TWEET = createPhotoTweet(2L, TEST_USER, TEST_STATUS,
+            TEST_TIMESTAMP, TEST_PHOTO_URL);
+    public static final Tweet TEST_MULTIPLE_PHOTO_TWEET = createMultiplePhotosTweet(4, 2L, TEST_USER, TEST_STATUS,
             TEST_TIMESTAMP, TEST_PHOTO_URL);
     // Empty Tweet has empty string name, username, status, and timestamp fields
     public static final Tweet EMPTY_TWEET = createTweet(-1L, EMPTY_USER, EMPTY_STATUS,
@@ -128,22 +144,43 @@ public final class TestFixtures {
                 .setText(text)
                 .setCreatedAt(timestamp)
                 .setFavorited(isFavorited)
+                .setEntities(new TweetEntities(null, null, null, null, null))
                 .build();
     }
 
     static Tweet createPhotoTweet(long id, User user, String text, String timestamp,
             String photoUrlHttps) {
-        final MediaEntity photoEntity = new MediaEntity(null, null, null, 0, 0, 0L, null, null,
-                photoUrlHttps, createMediaEntitySizes(100, 100), 0L, null, "photo", null);
+        final MediaEntity photoEntity = new MediaEntity("", "", "", 0, 0, 0L, null, null,
+                photoUrlHttps, createMediaEntitySizes(100, 100), 0L, null, "photo", null, "");
         final ArrayList<MediaEntity> mediaEntities = new ArrayList<>();
         mediaEntities.add(photoEntity);
-        final TweetEntities entities = new TweetEntities(null, null, mediaEntities, null);
+        final TweetEntities entities = new TweetEntities(null, null, mediaEntities, null, null);
         return new TweetBuilder()
                 .setId(id)
                 .setUser(user)
                 .setText(text)
                 .setCreatedAt(timestamp)
                 .setEntities(entities)
+                .setExtendedEntities(entities)
+                .build();
+    }
+
+    static Tweet createMultiplePhotosTweet(int count, long id, User user, String text,
+                                                  String timestamp, String photoUrlHttps) {
+        final ArrayList<MediaEntity> mediaEntities = new ArrayList<>();
+        for (int x = 0; x < count; x++) {
+            final MediaEntity photoEntity = new MediaEntity("", "", "", 0, 0, 0L, null, null,
+                    photoUrlHttps, createMediaEntitySizes(100, 100), 0L, null, "photo", null, "");
+            mediaEntities.add(photoEntity);
+        }
+        final TweetEntities entities = new TweetEntities(null, null, mediaEntities, null, null);
+        return new TweetBuilder()
+                .setId(id)
+                .setUser(user)
+                .setText(text)
+                .setCreatedAt(timestamp)
+                .setEntities(entities)
+                .setExtendedEntities(entities)
                 .build();
     }
 
@@ -152,6 +189,15 @@ public final class TestFixtures {
                 .setId(id)
                 .setUser(retweeter)
                 .setRetweetedStatus(retweetedStatus)
+                .build();
+    }
+
+    public static Tweet createTweetWithVineCard(long id, User user, String text, Card card) {
+        return new TweetBuilder()
+                .setId(id)
+                .setCard(card)
+                .setText(text)
+                .setUser(user)
                 .build();
     }
 
@@ -166,8 +212,15 @@ public final class TestFixtures {
     }
 
     public static MediaEntity newMediaEntity(int start, int end, String type) {
+        return newMediaEntity(start, end, type, 0);
+    }
+
+    public static MediaEntity newMediaEntity(int start, int end, String type,
+                                             int durationInMillis) {
+        final VideoInfo videoInfo =
+                new VideoInfo(Collections.EMPTY_LIST, durationInMillis, Collections.EMPTY_LIST);
         return new MediaEntity("url", "expandedUrl", "displayUrl", start, end, 0L, "0", "mediaUrl",
-                "mediaUrlHttps", null, 0L, "0", type, null);
+                "mediaUrlHttps", null, 0L, "0", type, videoInfo, "");
     }
 
     public static List<Tweet> getTweetList(long count) {
@@ -179,13 +232,22 @@ public final class TestFixtures {
         return tweets;
     }
 
+    public static List<MediaEntity> createMultipleMediaEntitiesWithPhoto(int count, int w, int h) {
+        final List<MediaEntity> mediaEntities = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            final MediaEntity mediaEntityWithPhoto = createMediaEntityWithPhoto(w, h);
+            mediaEntities.add(mediaEntityWithPhoto);
+        }
+        return mediaEntities;
+    }
+
     public static MediaEntity createMediaEntityWithPhoto(int width, int height) {
         return createMediaEntityWithPhoto(createMediaEntitySizes(width, height));
     }
 
     public static MediaEntity createMediaEntityWithPhoto(MediaEntity.Sizes sizes) {
         return new MediaEntity(null, null, null, 0, 0, 0L, null, null, null, sizes, 0L, null,
-                "photo", null);
+                "photo", null, "");
     }
 
     public static MediaEntity.Sizes createMediaEntitySizes(int width, int height) {
@@ -195,15 +257,43 @@ public final class TestFixtures {
 
     public static MediaEntity createEntityWithVideo(VideoInfo videoInfo) {
         return new MediaEntity(null, null, null, 0, 0, 0L, null, null, null, null, 0L, null,
-                "video", videoInfo);
+                "video", videoInfo, "");
     }
 
     public static MediaEntity createEntityWithAnimatedGif(VideoInfo videoInfo) {
         return new MediaEntity(null, null, null, 0, 0, 0L, null, null, null, null, 0L, null,
-                "animated_gif", videoInfo);
+                "animated_gif", videoInfo, "");
     }
 
     public static VideoInfo createVideoInfoWithVariant(VideoInfo.Variant variant) {
-        return new VideoInfo(null, 0, Arrays.asList(variant));
+        return new VideoInfo(null, 0, Collections.singletonList(variant));
+    }
+
+
+    public static final BindingValues TEST_BINDING_VALUES =
+            new BindingValues(Collections.<String, Object>emptyMap());
+
+    public static Card sampleInvalidVineCard() {
+        return new Card(TEST_BINDING_VALUES, "invalid");
+    }
+
+    public static final String PLAYER_CARD_VINE = VineCardUtils.VINE_CARD;
+
+    public static final String TEST_VINE_USER_ID = "586671909";
+
+    public static Card sampleValidVineCard() {
+        return new Card(createBindingValuesForCard(), PLAYER_CARD_VINE);
+    }
+
+    public static BindingValues createBindingValuesForCard() {
+        final UserValue testUser = new UserValue(TEST_VINE_USER_ID);
+        final Map<String, Object> testValues = new HashMap<>();
+        testValues.put("site", testUser);
+
+        final ImageValue imageValue = new ImageValue(10, 10, TEST_PHOTO_URL, "");
+        testValues.put("player_image", imageValue);
+        testValues.put("player_stream_url", TEST_URL);
+
+        return new BindingValues(testValues);
     }
 }

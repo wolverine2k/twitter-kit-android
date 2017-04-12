@@ -20,31 +20,42 @@ package com.twitter.sdk.android.tweetui;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Color;
-import android.os.Build;
 import android.view.View;
+import android.widget.ImageView;
+
+import com.twitter.sdk.android.core.Callback;
+import com.twitter.sdk.android.core.models.Card;
+import com.twitter.sdk.android.core.models.ImageValue;
+import com.twitter.sdk.android.core.models.MediaEntity;
+import com.twitter.sdk.android.core.models.Tweet;
+import com.twitter.sdk.android.tweetui.internal.AspectRatioFrameLayout;
+import com.twitter.sdk.android.tweetui.internal.TweetMediaView;
+
+import org.mockito.ArgumentCaptor;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 import io.fabric.sdk.android.Fabric;
 import io.fabric.sdk.android.FabricTestUtils;
 import io.fabric.sdk.android.KitStub;
 import io.fabric.sdk.android.Logger;
 
-import com.twitter.sdk.android.core.Callback;
-import com.twitter.sdk.android.core.models.MediaEntity;
-import com.twitter.sdk.android.core.models.Tweet;
-
-import org.mockito.ArgumentCaptor;
-
-import java.util.Locale;
-
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Tests the state of BaseTweetViews created via constructors.
  */
 public abstract class BaseTweetViewTest extends TweetUiTestCase {
-    private static final String ANY_ADVERTISING_ID = "ANY_ID";
     private static final String REQUIRED_RETWEETED_BY_TEXT = "Retweeted by Mr Retweets";
     protected static final double DELTA = 0.001f;
+    protected static final String ALT_TEXT = "ALT_TEXT";
 
     protected Context context;
     private Resources resources;
@@ -211,6 +222,35 @@ public abstract class BaseTweetViewTest extends TweetUiTestCase {
         TestUtils.setLocale(getContext(), originalLocale);
     }
 
+    public void testSetTweetMediaClickListener() {
+        final BaseTweetView view = createView(context, TestFixtures.TEST_TWEET_LINK);
+        view.setTweetMediaClickListener(new TweetMediaClickListener() {
+            @Override
+            public void onMediaEntityClick(Tweet tweet, MediaEntity entity) {
+
+            }
+        });
+
+        assertNotNull(view.tweetMediaClickListener);
+    }
+
+    public void testSetTweetLinkClickListener() {
+        final BaseTweetView view = createView(context, TestFixtures.TEST_TWEET_LINK);
+        final TweetLinkClickListener linkClickListener = mock(TweetLinkClickListener.class);
+        view.setTweetLinkClickListener(linkClickListener);
+
+        assertNotNull(view.tweetLinkClickListener);
+
+        view.getLinkClickListener().onUrlClicked(TestFixtures.TEST_URL);
+        verify(linkClickListener).onLinkClick(TestFixtures.TEST_TWEET_LINK, TestFixtures.TEST_URL);
+    }
+
+    public void testSetTweet_defaultClickListener() {
+        final BaseTweetView view = createView(context, TestFixtures.TEST_TWEET_LINK);
+
+        assertNull(view.tweetLinkClickListener);
+    }
+
     // Permalink click
     public void testSetTweet_permalink() {
         final BaseTweetView view = createView(context, null);
@@ -253,25 +293,30 @@ public abstract class BaseTweetViewTest extends TweetUiTestCase {
     }
 
     public void testAvatarDefault() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            final BaseTweetView view = createView(context, TestFixtures.TEST_TWEET);
-            final int containerColor = getResources().getColor(
-                    R.color.tw__tweet_light_container_bg_color);
-            final int color = ColorUtils.calculateOpacityTransform(
-                    BaseTweetView.MEDIA_BG_LIGHT_OPACITY, Color.BLACK, containerColor);
-            assertEquals(color, TestUtils.getDrawableColor(view.avatarView));
-        }
+        final BaseTweetView view = createView(context, TestFixtures.TEST_TWEET);
+        final int containerColor = getResources().getColor(
+                R.color.tw__tweet_light_container_bg_color);
+        final int color = ColorUtils.calculateOpacityTransform(
+                BaseTweetView.MEDIA_BG_LIGHT_OPACITY, Color.BLACK, containerColor);
+        assertEquals(color, TestUtils.getDrawableColor(view.avatarView));
     }
 
     public void testPhotoDefault() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            final BaseTweetView view = createView(context, TestFixtures.TEST_PHOTO_TWEET);
-            final int containerColor = getResources().getColor(
-                    R.color.tw__tweet_light_container_bg_color);
-            final int color = ColorUtils.calculateOpacityTransform(
-                    BaseTweetView.MEDIA_BG_LIGHT_OPACITY, Color.BLACK, containerColor);
-            assertEquals(color, TestUtils.getDrawableColor(view.mediaView));
-        }
+        final BaseTweetView view = createView(context, TestFixtures.TEST_PHOTO_TWEET);
+        final int containerColor = getResources().getColor(
+                R.color.tw__tweet_light_container_bg_color);
+        final int color = ColorUtils.calculateOpacityTransform(
+                BaseTweetView.MEDIA_BG_LIGHT_OPACITY, Color.BLACK, containerColor);
+
+        final MediaEntity entity = TestFixtures.createMediaEntityWithPhoto(100, 100);
+        final List<MediaEntity> mediaEntities = new ArrayList<>();
+        mediaEntities.add(entity);
+
+        final TweetMediaView tweetMediaView = view.tweetMediaView;
+        tweetMediaView.setTweetMediaEntities(TestFixtures.TEST_TWEET, mediaEntities);
+
+        final ImageView imageView = (ImageView) tweetMediaView.getChildAt(0);
+        assertEquals(color, TestUtils.getBackgroundColor(imageView));
     }
 
     public void testTweetPhotoErrorDefault() {
@@ -306,27 +351,31 @@ public abstract class BaseTweetViewTest extends TweetUiTestCase {
     }
 
     public void testAvatarDark() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            final BaseTweetView view = createView(context, TestFixtures.TEST_TWEET,
-                    R.style.tw__TweetDarkStyle);
-            final int containerColor = getResources().getColor(
-                    R.color.tw__tweet_dark_container_bg_color);
-            final int color = ColorUtils.calculateOpacityTransform(
-                    BaseTweetView.MEDIA_BG_DARK_OPACITY, Color.WHITE, containerColor);
-            assertEquals(color, TestUtils.getDrawableColor(view.avatarView));
-        }
+        final BaseTweetView view = createView(context, TestFixtures.TEST_TWEET,
+                R.style.tw__TweetDarkStyle);
+        final int containerColor = getResources().getColor(
+                R.color.tw__tweet_dark_container_bg_color);
+        final int color = ColorUtils.calculateOpacityTransform(
+                BaseTweetView.MEDIA_BG_DARK_OPACITY, Color.WHITE, containerColor);
+        assertEquals(color, TestUtils.getDrawableColor(view.avatarView));
     }
 
     public void testPhotoDark() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            final BaseTweetView view = createView(context, TestFixtures.TEST_PHOTO_TWEET,
-                    R.style.tw__TweetDarkStyle);
-            final int containerColor = getResources().getColor(
-                    R.color.tw__tweet_dark_container_bg_color);
-            final int color = ColorUtils.calculateOpacityTransform(
-                    BaseTweetView.MEDIA_BG_DARK_OPACITY, Color.WHITE, containerColor);
-            assertEquals(color, TestUtils.getDrawableColor(view.mediaView));
-        }
+        final BaseTweetView view = createView(context, TestFixtures.TEST_PHOTO_TWEET,
+                R.style.tw__TweetDarkStyle);
+        final int containerColor = getResources().getColor(
+                R.color.tw__tweet_dark_container_bg_color);
+        final int color = ColorUtils.calculateOpacityTransform(
+                BaseTweetView.MEDIA_BG_DARK_OPACITY, Color.WHITE, containerColor);
+
+        final MediaEntity entity = TestFixtures.createMediaEntityWithPhoto(100, 100);
+        final List<MediaEntity> mediaEntities = new ArrayList<>();
+        mediaEntities.add(entity);
+        final TweetMediaView tweetMediaView = view.tweetMediaView;
+        tweetMediaView.setTweetMediaEntities(TestFixtures.TEST_TWEET, mediaEntities);
+
+        final ImageView imageView = (ImageView) tweetMediaView.getChildAt(0);
+        assertEquals(color, TestUtils.getBackgroundColor(imageView));
     }
 
     public void testTweetPhotoErrorDark() {
@@ -382,8 +431,14 @@ public abstract class BaseTweetViewTest extends TweetUiTestCase {
 
     public void testGetAspectRatio_withNullMediaEntity() {
         final BaseTweetView view = createView(context, TestFixtures.TEST_TWEET);
+        final MediaEntity mediaEntity = null;
+        assertEquals(BaseTweetView.DEFAULT_ASPECT_RATIO, view.getAspectRatio(mediaEntity));
+    }
 
-        assertEquals(BaseTweetView.DEFAULT_ASPECT_RATIO, view.getAspectRatio(null));
+    public void testGetAspectRatio_withNullImageValue() {
+        final BaseTweetView view = createView(context, TestFixtures.TEST_TWEET);
+        final ImageValue imageValue = null;
+        assertEquals(BaseTweetView.DEFAULT_ASPECT_RATIO, view.getAspectRatio(imageValue));
     }
 
     public void testGetAspectRatio_mediaEntityWithNullSizes() {
@@ -436,18 +491,6 @@ public abstract class BaseTweetViewTest extends TweetUiTestCase {
         verify(scribeClient).click(TestFixtures.TEST_TWEET, view.getViewTypeName());
     }
 
-    public void testSetErrorImage_handlesNullPicasso() {
-        when(mockDependencyProvider.getImageLoader()).thenReturn(null);
-        final BaseTweetView tweetView = createViewWithMocks(context, TestFixtures.TEST_TWEET,
-                R.style.tw__TweetDarkStyle, mockDependencyProvider);
-
-        try {
-            tweetView.setErrorImage();
-        } catch (NullPointerException e) {
-            fail("Should have handled null error image");
-        }
-    }
-
     public void testSetProfilePhotoView_handlesNullPicasso() {
         when(mockDependencyProvider.getImageLoader()).thenReturn(null);
 
@@ -468,11 +511,28 @@ public abstract class BaseTweetViewTest extends TweetUiTestCase {
                 R.style.tw__TweetDarkStyle, mockDependencyProvider);
 
         try {
-            tweetView.setTweetMedia(mock(MediaEntity.class));
+            tweetView.setTweetMedia(mock(Tweet.class));
         } catch (NullPointerException e) {
             fail("Should have handled null error image");
         }
     }
+
+    public void testRender_forSinglePhotoEntity() {
+        final BaseTweetView tweetView = createViewWithMocks(context, null);
+        tweetView.setTweet(TestFixtures.TEST_PHOTO_TWEET);
+
+        assertEquals(View.VISIBLE, tweetView.mediaContainer.getVisibility());
+        assertEquals(View.VISIBLE, tweetView.tweetMediaView.getVisibility());
+        assertEquals(View.GONE, tweetView.mediaBadgeView.getVisibility());
+    }
+
+    public void testRender_forMultiplePhotoEntities() {
+        final BaseTweetView tweetView = createViewWithMocks(context, null);
+        tweetView.setTweet(TestFixtures.TEST_MULTIPLE_PHOTO_TWEET);
+
+        assertEquals(View.VISIBLE, tweetView.mediaContainer.getVisibility());
+        assertEquals(View.VISIBLE, tweetView.tweetMediaView.getVisibility());
+        assertEquals(View.GONE, tweetView.mediaBadgeView.getVisibility());    }
 
     public void testRender_rendersRetweetedStatus() {
         final BaseTweetView tweetView = createViewWithMocks(context, null);
@@ -500,5 +560,31 @@ public abstract class BaseTweetViewTest extends TweetUiTestCase {
         tweetView.setTweet(TestFixtures.TEST_RETWEET);
         assertEquals(View.VISIBLE, tweetView.retweetedByView.getVisibility());
         assertEquals(REQUIRED_RETWEETED_BY_TEXT, tweetView.retweetedByView.getText());
+    }
+
+    public void testRender_rendersVineCard() {
+        final BaseTweetView view = createViewWithMocks(context, null);
+        final Card sampleVineCard = TestFixtures.sampleValidVineCard();
+        final Tweet tweetWithVineCard = TestFixtures.createTweetWithVineCard(
+                TestFixtures.TEST_TWEET_ID, TestFixtures.TEST_USER,
+                TestFixtures.TEST_STATUS, sampleVineCard);
+
+        view.setTweet(tweetWithVineCard);
+
+        assertEquals(TestFixtures.TEST_NAME, view.fullNameView.getText().toString());
+        assertEquals(TestFixtures.TEST_FORMATTED_SCREEN_NAME, view.screenNameView.getText());
+        assertEquals(TestFixtures.TEST_STATUS, view.contentView.getText().toString());
+        assertEquals(View.VISIBLE, view.mediaContainer.getVisibility());
+        assertEquals(View.VISIBLE, view.mediaBadgeView.getVisibility());
+        assertEquals(View.VISIBLE, view.tweetMediaView.getVisibility());
+    }
+
+    public void testClearMedia() {
+        final BaseTweetView view = createViewWithMocks(context, null);
+        view.mediaContainer = mock(AspectRatioFrameLayout.class);
+
+        view.clearTweetMedia();
+
+        verify(view.mediaContainer).setVisibility(View.GONE);
     }
 }

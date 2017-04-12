@@ -17,11 +17,11 @@
 
 package com.twitter.sdk.android.core.services;
 
-import com.twitter.sdk.android.core.Callback;
-import com.twitter.sdk.android.core.internal.TwitterCollection;
+import com.twitter.sdk.android.core.models.TwitterCollection;
 
-import retrofit.http.GET;
-import retrofit.http.Query;
+import retrofit2.Call;
+import retrofit2.http.GET;
+import retrofit2.http.Query;
 
 public interface CollectionService {
 
@@ -34,18 +34,17 @@ public interface CollectionService {
      * exist in the collection outside of what was in range of the current request.
      * @param id The identifier of the Collection to return results for (e.g. "custom-5394878324")
      * @param count Specifies the number of Tweets to try and retrieve, up to a maximum of 200 per
-     *              distinct request. The value of count is best thought of as an “up to” parameter;
+     *              distinct request. The value of count is best thought of as an "up to" parameter;
      *              receiving less results than the specified count does not necessarily mean there
-     *              aren’t remaining results to fetch.
+     *              aren't remaining results to fetch.
      * @param maxPosition Returns results with a position value less than or equal to the specified
      *                    position.
      * @param minPosition Returns results with a position greater than the specified position.
-     * @param cb The callback to invoke when the request completes.
      */
-    @GET("/1.1/collections/entries.json")
-    void collection(@Query("id") String id,
-                    @Query("count") Integer count,
-                    @Query("max_position") Long maxPosition,
-                    @Query("min_position") Long minPosition,
-                    Callback<TwitterCollection> cb);
+    @GET("/1.1/collections/entries.json?" +
+            "tweet_mode=extended&include_cards=true&cards_platform=TwitterKit-13")
+    Call<TwitterCollection> collection(@Query("id") String id,
+                                       @Query("count") Integer count,
+                                       @Query("max_position") Long maxPosition,
+                                       @Query("min_position") Long minPosition);
 }
